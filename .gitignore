@@ -1,2 +1,5 @@
 # Ignoring object files
 *.o
+
+# Main executable file
+/lumify

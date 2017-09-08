@@ -23,5 +23,5 @@ $(BIN): $(OBJ)
 src/main.o: src/main.cpp
 	$(CPP) -c src/main.cpp -o src/main.o $(CXXFLAGS)
 
-source/sockets.o: source/sockets.cpp
-	$(CPP) -c source/sockets.cpp -o source/sockets.o $(CXXFLAGS)
+src/sockets.o: src/sockets.cpp
+	$(CPP) -c src/sockets.cpp -o src/sockets.o $(CXXFLAGS)

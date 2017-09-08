@@ -2,14 +2,14 @@
 
 using namespace Socket;
 
-TCPSocket::TCPSocket(int flags = 0) {
+TCPSocket::TCPSocket(int flags) {
     socketInfo = new addrinfo;
 
     std::memset(socketInfo, 0, sizeof(addrinfo));
 
     socketInfo->ai_family = AF_INET;
     socketInfo->ai_socktype = SOCK_STREAM;
-    socketInfo->ai_flags = (AI_PASSIVE | flags);
+    socketInfo->ai_flags = flags;
 
     // Same family and socktype as socketInfo
     socketFd = socket(AF_INET, SOCK_STREAM, 0);
@@ -22,8 +22,11 @@ TCPSocket::TCPSocket(int flags = 0) {
     setsockopt(socketFd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 }
 
-TCPSocket::TCPSocket(int socket, addrinfo sInfo, bool isListening, bool isConnected, bool isBound) :
-                         socketFd(socket), isListening(isListening), isConnected(isConnected), isBound(isBound) {
+TCPSocket::TCPSocket(int socket, addrinfo sInfo, bool isBound, bool isListening, bool isConnected) :
+                         socketFd(socket), isBound(isBound), isListening(isListening), isConnected(isConnected) {
+
+
+    if (sInfo.ai_family != AF_INET || sInfo.ai_socktype != SOCK_STREAM) throw "Not TCP/IPv4 addrinfo";
 
     socketInfo = new addrinfo(sInfo);
     // allow reuse of address (to avoid "Address already in use")
@@ -33,13 +36,21 @@ TCPSocket::TCPSocket(int socket, addrinfo sInfo, bool isListening, bool isConnec
 
 TCPSocket::~TCPSocket() {
     freeaddrinfo(socketInfo);
-    if (!isClosed) close();
+    if (isConnected) close();
 }
 
 void TCPSocket::bind(unsigned int port) {
 
     if (isBound) throw "Already bound";
 
+    // Per documentation: 
+    //     If the AI_PASSIVE bit is set it indicates that the
+    // returned socket address structure is intended for use
+    // in a call to bind(2). In this case, if the hostname 
+    // argument is the null pointer, then the IP address portion
+    // of the socket address structure will be set to INADDR_ANY 
+    // for an IPv4 address
+    socketInfo->ai_flags |= AI_PASSIVE;
     getAddrInfo("NULL", port);
 
     int result;
@@ -110,11 +121,11 @@ TCPSocket TCPSocket::accept() {
     clientInfo.ai_socktype = SOCK_STREAM;
     clientInfo.ai_addr = (sockaddr*)clientAddress;
 
-    return TCPSocket(clientFd, clientInfo, false, true, false);
+    return TCPSocket(clientFd, clientInfo, false, false, true);
 
 }
         
-void TCPSocket::send(const std::string& message, int flags = 0) {
+void TCPSocket::send(const std::string& message, int flags) {
 
     if (isListening || !isConnected) throw "Can't send from this socket";
 
@@ -137,7 +148,7 @@ void TCPSocket::send(const std::string& message, int flags = 0) {
 
 }
 
-std::string TCPSocket::recv(unsigned int maxlen, int flags = 0) {
+std::string TCPSocket::recv(unsigned int maxlen, int flags) {
 
     if (isListening || !isConnected) throw "Can't receive from this socket";
 
@@ -158,7 +169,7 @@ void TCPSocket::close() {
     int result = ::close(socketFd);
     if (result == -1) throw "Error on closing socketFd";
 
-    isClosed = true;
+    isConnected = false;
 
 }
 
