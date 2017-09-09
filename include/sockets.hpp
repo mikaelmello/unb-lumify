@@ -9,10 +9,21 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <netdb.h>
+#include <stdexcept>
 #include <cstring>
 #include <string>
 
 namespace Socket {
+ 
+class ConnectionException : public std::runtime_error {
+    public:
+        ConnectionException(const std::string& error) : std::runtime_error(error) {}
+};
+
+class ClosedConnection : public ConnectionException {
+    public:
+        ClosedConnection(const std::string& error) : ConnectionException(error) {}
+};
 
 /** Wrapper de um socket TCP/IPv4.
  *  
@@ -35,10 +46,11 @@ class TCPSocket {
         /// Cria um socket TCP/IPv4 copiando as variaveis definidas nos parametros.
         /// @param socket       Descritor de arquivo da socket já criada.
         /// @param socketInfo   Addrinfo TCP/IPv4 que já contêm endereços preenchidos.
+        /// @param portUsed     Porta na qual o socket foi vinculado.
         /// @param isBound      Indica se o socket está vinculado a alguma porta.
         /// @param isListening  Indica se o socket já está ouvindo em alguma porta.
         /// @param isConnected  Indica se o socket está conectado a algum servidor.
-        TCPSocket(int socket, addrinfo socketInfo, bool isBound, bool isListening, bool isConnected);
+        TCPSocket(int socket, addrinfo socketInfo, int portUsed, bool isBound, bool isListening, bool isConnected);
 
         /// Destrutor. Libera memórias alocadas e encerra o socket.
         ~TCPSocket();
@@ -87,7 +99,9 @@ class TCPSocket {
         addrinfo * socketInfo;
         
         /// Socket file descriptor.
-        int  socketFd = -1;
+        int socketFd = -1;
+
+        int portUsed;
 
         bool isBound = false;
         

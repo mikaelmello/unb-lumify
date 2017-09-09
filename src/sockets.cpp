@@ -14,7 +14,7 @@ TCPSocket::TCPSocket(int flags) {
     // Same family and socktype as socketInfo
     socketFd = socket(AF_INET, SOCK_STREAM, 0);
     if (socketFd == -1) {
-        throw "Could not create socket";
+        throw ConnectionException("Could not create socket. Error: " + std::string(strerror(errno)));
     }
 
     // allow reuse of address (to avoid "Address already in use")
@@ -22,13 +22,16 @@ TCPSocket::TCPSocket(int flags) {
     setsockopt(socketFd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 }
 
-TCPSocket::TCPSocket(int socket, addrinfo sInfo, bool isBound, bool isListening, bool isConnected) :
-                         socketFd(socket), isBound(isBound), isListening(isListening), isConnected(isConnected) {
+TCPSocket::TCPSocket(int socket, addrinfo sInfo, int port, bool isBound, bool isListening, bool isConnected) :
+                         socketFd(socket), portUsed(port), isBound(isBound), isListening(isListening), isConnected(isConnected) {
 
 
-    if (sInfo.ai_family != AF_INET || sInfo.ai_socktype != SOCK_STREAM) throw "Not TCP/IPv4 addrinfo";
+    if (sInfo.ai_family != AF_INET || sInfo.ai_socktype != SOCK_STREAM) {
+        throw ConnectionException("sInfo passed is not defined as TCP/IPv4");
+    }
 
     socketInfo = new addrinfo(sInfo);
+
     // allow reuse of address (to avoid "Address already in use")
     int optval = 1;
     setsockopt(socketFd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
@@ -41,7 +44,7 @@ TCPSocket::~TCPSocket() {
 
 void TCPSocket::bind(unsigned int port) {
 
-    if (isBound) throw "Already bound";
+    if (isBound) throw ConnectionException("Socket is already bound to port " + std::to_string(portUsed));
 
     // Per documentation: 
     //     If the AI_PASSIVE bit is set it indicates that the
@@ -61,17 +64,24 @@ void TCPSocket::bind(unsigned int port) {
         result = ::bind(socketFd, newAddrInfo->ai_addr, newAddrInfo->ai_addrlen);
         if (result == -1) continue;
 
+        portUsed = port;
         isBound = true;
         return;
     }
 
-    throw "Could not bind";
+    throw ConnectionException("Could not bind to port " + std::to_string(port) 
+                            + ". Error: " + std::string(strerror(errno)));
 }
 
 void TCPSocket::connect(const std::string& address, unsigned int port) {
 
-    if (isListening) throw "Can't connect when already bound and listening";
-    if (isConnected) throw "Already connected";
+    if (isListening) {
+        throw ConnectionException("Socket is already listening incoming connections on port " 
+                                + std::to_string(portUsed));
+    }
+    if (isConnected) {
+        throw ConnectionException("Socket is already connected to an address");
+    }
     
     getAddrInfo(address, port);
 
@@ -87,17 +97,27 @@ void TCPSocket::connect(const std::string& address, unsigned int port) {
         return;
     }
 
-    throw "Could not connect";
+    throw ConnectionException("Could not connect to address " + address +
+                              " on port " + std::to_string(port) + 
+                              ". Error: " + std::string(strerror(errno)));
 
 }
         
 void TCPSocket::listen(unsigned int backlog) {
 
-    if (!isBound) throw "Not bound to any port to listen";
-    if (isListening) throw "Already listening";
+    if (!isBound) {
+        throw ConnectionException("Can not listen when socket is not bound to any port");
+    }
+    if (isListening) {
+        throw ConnectionException("Socket is already listening incoming connections on port " 
+                                + std::to_string(portUsed));
+    }
 
     int result = ::listen(socketFd, backlog);
-    if (result == -1) throw "Could not listen";
+    if (result == -1) {
+        throw ConnectionException("Could not listen on port " + std::to_string(portUsed) 
+                                + ". Error: " + std::string(strerror(errno)));
+    }
 
     isListening = true;
 
@@ -105,14 +125,18 @@ void TCPSocket::listen(unsigned int backlog) {
 
 TCPSocket TCPSocket::accept() {
 
-    if (!isListening) throw "Can't accept while not listening";
+    if (!isListening) {
+        throw ConnectionException("Socket is not listening to incoming connections to accept one");
+    }
 
     sockaddr_in * clientAddress = new sockaddr_in;
     memset(&clientAddress, 0, sizeof(sockaddr_in));
     socklen_t sin_size = sizeof(sockaddr_in);
     int clientFd = ::accept(socketFd, (sockaddr *)&clientAddress, &sin_size);
 
-    if (clientFd == -1) throw "No connections to accept";
+    if (clientFd == -1) {
+        throw ConnectionException("Error while accepting a connection. Error: " + std::string(strerror(errno)));
+    }
 
     addrinfo clientInfo;
     memset(&clientInfo, 0, sizeof(addrinfo));
@@ -121,17 +145,19 @@ TCPSocket TCPSocket::accept() {
     clientInfo.ai_socktype = SOCK_STREAM;
     clientInfo.ai_addr = (sockaddr*)clientAddress;
 
-    return TCPSocket(clientFd, clientInfo, false, false, true);
+    return TCPSocket(clientFd, clientInfo, portUsed, false, false, true);
 
 }
         
 void TCPSocket::send(const std::string& message, int flags) {
 
-    if (isListening || !isConnected) throw "Can't send from this socket";
+    if (isListening || !isConnected) {
+        throw ConnectionException("Can't send message from a socket that is not connected");
+    }
 
     int msgLength = message.length();
     int bytesLeft = msgLength;
-    int bytesSent;
+    int bytesSent = 0;
     const char* cMessage = message.c_str();
 
     while (bytesSent < msgLength) {
@@ -139,7 +165,9 @@ void TCPSocket::send(const std::string& message, int flags) {
         const char* cMessageLeft = cMessage + bytesSent;
 
         int result = ::send(socketFd, cMessageLeft, bytesLeft, flags);
-        if (result == -1) throw "Error while sending";
+        if (result == -1) {
+            throw ConnectionException("Could not send message. Error: " + std::string(strerror(errno)));
+        }
 
         bytesLeft -= result;
         bytesSent += result;
@@ -150,24 +178,33 @@ void TCPSocket::send(const std::string& message, int flags) {
 
 std::string TCPSocket::recv(unsigned int maxlen, int flags) {
 
-    if (isListening || !isConnected) throw "Can't receive from this socket";
+    if (isListening || !isConnected) {
+        throw ConnectionException("Can't receive message in a socket that is not connected");
+    }
 
-    char buffer[maxlen];
+    char buffer[maxlen+1];
     int result = ::recv(socketFd, buffer, maxlen, flags);
 
-    if (result == -1) throw "Error on receive";
-    if (result ==  0) isConnected = false;
-
+    if (result == -1) {
+        throw ConnectionException("Could not receive message. Error: " + std::string(strerror(errno)));
+    }
+    if (result ==  0) {
+        isConnected = false;
+        throw ClosedConnection("Client closed connection.");
+    }
+    buffer[result] = '\0';
     std::string message(buffer);
 
-    return message;
+    return message + " " + std::to_string(result);
 
 }
 
 void TCPSocket::close() {
 
     int result = ::close(socketFd);
-    if (result == -1) throw "Error on closing socketFd";
+    if (result == -1) {
+        throw ConnectionException("Could not close socket. Error: " + std::string(strerror(errno)));
+    }
 
     isConnected = false;
 
@@ -185,6 +222,6 @@ void TCPSocket::getAddrInfo(const std::string address, unsigned int port) {
 
 
     if (result != 0) {
-        throw "Error on getaddrinfo(): " + std::string(gai_strerror(result));
+        throw ConnectionException("Error on getaddrinfo(): " + std::string(gai_strerror(result)));
     }
 }
