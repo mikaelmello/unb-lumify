@@ -25,6 +25,61 @@ class ClosedConnection : public ConnectionException {
         ClosedConnection(const std::string& error) : ConnectionException(error) {}
 };
 
+/** Classe base de um wrapper de um socket padrão IPv4.
+ */
+class GeneralSocket {
+    public:
+
+        /// Vincula o socket a alguma porta.
+        /// @param port Número da porta que o socket será vinculado.
+        void bind(unsigned int port);
+        
+        /// Encerra o socket.
+        void close();
+
+    protected:
+
+        /// Cria um socket IPv4 de acordo com o protocolo selecionado.
+        /// @param type Tipo do socket a ser criado, SOCK_STREAM ou SOCK_DGRAM.
+        /// @param flags Flags opcionais para a chamada de getaddrinfo()
+        GeneralSocket(int type, int flags = 0);
+
+        /// Cria um socket IPv4 copiando as variaveis definidas nos parametros.
+        /// @param socket       Descritor de arquivo da socket já criada.
+        /// @param type         Tipo do socket (SOCK_DGRAM ou SOCK_STREAM).
+        /// @param socketInfo   Addrinfo TCP/IPv4 que já contêm endereços preenchidos.
+        /// @param portUsed     Porta na qual o socket foi vinculado.
+        /// @param isBound      Indica se o socket está vinculado a alguma porta.
+        GeneralSocket(int socket, int type, addrinfo socketInfo, int portUsed, bool isBound);
+
+        /// Destrutor. Libera memórias alocadas e encerra o socket.
+        ~GeneralSocket();
+
+        /// Preenche socketInfo com endereços possíveis de se realizar chamadas
+        /// de bind() ou connect().
+        /// @param address Endereço a ser procurado (IPv4 ou domínio).
+        /// @param port Porta a ser realizada a busca.
+        void getAddrInfo(const std::string address, unsigned int port);
+
+        /// Contém as informações do socket.
+        /// Socket será sempre TCP/IPv4 ou UDP/IPv4.
+        addrinfo * socketInfo;
+        
+        /// Socket file descriptor.
+        int socketFd = -1;
+
+        /// Port used by bind()
+        int portUsed = -1;
+
+        /// Is socket bound to a specific port
+        bool isBound = false;
+
+        /// Is socket already closed
+        bool isClosed = false;
+
+};
+
+
 /** Wrapper de um socket TCP/IPv4.
  *  
  *      Para usar como um servidor (recebendo conexões) construa o objeto,
@@ -36,7 +91,7 @@ class ClosedConnection : public ConnectionException {
  *  e recv() para trocar informações com o servidor.
  *      A conexão é fechada normalmente usando a função close().
  */
-class TCPSocket {
+class TCPSocket : public GeneralSocket {
     public:
 
         /// Cria um socket TCP/IPv4.
@@ -51,13 +106,6 @@ class TCPSocket {
         /// @param isListening  Indica se o socket já está ouvindo em alguma porta.
         /// @param isConnected  Indica se o socket está conectado a algum servidor.
         TCPSocket(int socket, addrinfo socketInfo, int portUsed, bool isBound, bool isListening, bool isConnected);
-
-        /// Destrutor. Libera memórias alocadas e encerra o socket.
-        ~TCPSocket();
-
-        /// Vincula o socket a alguma porta.
-        /// @param port Número da porta que o socket será vinculado.
-        void bind(unsigned int port);
         
         /// Conecta a socket a algum endereço.
         /// @param address std::string contendo o endereço IP ou domínio a ser conectado.
@@ -87,30 +135,24 @@ class TCPSocket {
         void close();
 
     private:
-
-        /// Preenche socketInfo com endereços possíveis de se realizar chamadas
-        /// de bind() ou connect().
-        /// @param address Endereço a ser procurado (IPv4 ou domínio).
-        /// @param port Porta a ser realizada a busca.
-        void getAddrInfo(const std::string address, unsigned int port);
-
-        /// Contém as informações do socket.
-        /// Socket será sempre TCP/IPv4.
-        addrinfo * socketInfo;
         
-        /// Socket file descriptor.
-        int socketFd = -1;
-
-        int portUsed;
-
-        bool isBound = false;
-        
+        /// Is socket connected to another socket
         bool isConnected = false;
 
+        /// Is socket listening for incoming connections
         bool isListening = false;
 
 };
 
+
+/** Wrapper de um socket UDP/IPv4.
+ *  
+ *      Para usar como um servidor (recebendo conexões) construa o objeto,
+ *  faça o bind() receba mensagens usando recv() e as responda com send().
+ *      Para usar como um cliente basta construir o objeto e usar a função
+ *  send() e recv() para trocar informações com o servidor.
+ *      A conexão é fechada normalmente usando a função close().
+ */
 class UDPSocket {
 
 

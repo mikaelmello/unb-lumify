@@ -2,17 +2,17 @@
 
 using namespace Socket;
 
-TCPSocket::TCPSocket(int flags) {
+GeneralSocket::GeneralSocket(int type, int flags) {
     socketInfo = new addrinfo;
 
     std::memset(socketInfo, 0, sizeof(addrinfo));
 
     socketInfo->ai_family = AF_INET;
-    socketInfo->ai_socktype = SOCK_STREAM;
+    socketInfo->ai_socktype = type;
     socketInfo->ai_flags = flags;
 
     // Same family and socktype as socketInfo
-    socketFd = socket(AF_INET, SOCK_STREAM, 0);
+    socketFd = socket(AF_INET, type, 0);
     if (socketFd == -1) {
         throw ConnectionException("Could not create socket. Error: " + std::string(strerror(errno)));
     }
@@ -22,12 +22,12 @@ TCPSocket::TCPSocket(int flags) {
     setsockopt(socketFd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 }
 
-TCPSocket::TCPSocket(int socket, addrinfo sInfo, int port, bool isBound, bool isListening, bool isConnected) :
-                         socketFd(socket), portUsed(port), isBound(isBound), isListening(isListening), isConnected(isConnected) {
+GeneralSocket::GeneralSocket(int socket, int type, addrinfo sInfo, int port, bool isBound) :
+                         socketFd(socket), portUsed(port), isBound(isBound) {
 
 
-    if (sInfo.ai_family != AF_INET || sInfo.ai_socktype != SOCK_STREAM) {
-        throw ConnectionException("sInfo passed is not defined as TCP/IPv4");
+    if (sInfo.ai_family != AF_INET || sInfo.ai_socktype != type) {
+        throw ConnectionException("sInfo passed is not defined as the defined type and protocol IPv4");
     }
 
     socketInfo = new addrinfo(sInfo);
@@ -37,12 +37,12 @@ TCPSocket::TCPSocket(int socket, addrinfo sInfo, int port, bool isBound, bool is
     setsockopt(socketFd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 }
 
-TCPSocket::~TCPSocket() {
+GeneralSocket::~GeneralSocket() {
     freeaddrinfo(socketInfo);
-    if (isConnected) close();
+    close();
 }
 
-void TCPSocket::bind(unsigned int port) {
+void GeneralSocket::bind(unsigned int port) {
 
     if (isBound) throw ConnectionException("Socket is already bound to port " + std::to_string(portUsed));
 
@@ -57,9 +57,13 @@ void TCPSocket::bind(unsigned int port) {
     getAddrInfo("NULL", port);
 
     int result;
+    int totalIPv4Addrs = 0;
     addrinfo * newAddrInfo;
 
     for (newAddrInfo = socketInfo; newAddrInfo; newAddrInfo = newAddrInfo->ai_next) {
+
+        if (newAddrInfo->ai_family == AF_INET) totalIPv4Addrs++;
+        else continue;
 
         result = ::bind(socketFd, newAddrInfo->ai_addr, newAddrInfo->ai_addrlen);
         if (result == -1) continue;
@@ -69,8 +73,56 @@ void TCPSocket::bind(unsigned int port) {
         return;
     }
 
+    if (totalIPv4Addrs == 0) {
+        throw ConnectionException("Could not find IPv4 addresses to bind on port " 
+                                + std::to_string(port) + ".");
+    }
+
     throw ConnectionException("Could not bind to port " + std::to_string(port) 
                             + ". Error: " + std::string(strerror(errno)));
+}
+
+void GeneralSocket::close() {
+
+    if (socketFd == -1 || isClosed) return;
+
+    int result = ::close(socketFd);
+    if (result == -1) {
+        throw ConnectionException("Could not close socket. Error: " + std::string(strerror(errno)));
+    }
+
+    isBound = false;
+
+    portUsed = -1;
+    socketFd = -1;
+
+
+}
+
+void GeneralSocket::getAddrInfo(const std::string address, unsigned int port) {
+
+    addrinfo hints = *socketInfo;
+    const char * cAddress;
+
+    if (address == "NULL") cAddress = NULL;
+    else cAddress = address.c_str();
+
+    int result = getaddrinfo(cAddress, std::to_string(port).c_str(), &hints, &socketInfo);
+
+
+    if (result != 0) {
+        throw ConnectionException("Error on getaddrinfo(): " + std::string(gai_strerror(result)));
+    }
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *                  TCPSOCKET
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+TCPSocket::TCPSocket(int flags) : GeneralSocket(SOCK_STREAM, flags) {}
+
+TCPSocket::TCPSocket(int socket, addrinfo socketInfo, int portUsed, bool isBound, bool isListening, bool isConnected) : 
+                     GeneralSocket(socket, SOCK_STREAM, socketInfo, portUsed, isBound), isListening(isListening), isConnected(isConnected) {
 }
 
 void TCPSocket::connect(const std::string& address, unsigned int port) {
@@ -86,15 +138,24 @@ void TCPSocket::connect(const std::string& address, unsigned int port) {
     getAddrInfo(address, port);
 
     int result;
+    int totalIPv4Addrs = 0;
     addrinfo * newAddrInfo;
 
     for (newAddrInfo = socketInfo; newAddrInfo; newAddrInfo = newAddrInfo->ai_next) {
+
+        if (newAddrInfo->ai_family == AF_INET) totalIPv4Addrs++;
+        else continue;
 
         result = ::connect(socketFd, newAddrInfo->ai_addr, newAddrInfo->ai_addrlen);
         if (result == -1) continue;
 
         isConnected = true;
         return;
+    }
+
+    if (totalIPv4Addrs == 0) {
+        throw ConnectionException("Could not find IPv4 addresses to connect to " + address + 
+                                  " on port " + std::to_string(port) + ".");
     }
 
     throw ConnectionException("Could not connect to address " + address +
@@ -201,27 +262,10 @@ std::string TCPSocket::recv(unsigned int maxlen, int flags) {
 
 void TCPSocket::close() {
 
-    int result = ::close(socketFd);
-    if (result == -1) {
-        throw ConnectionException("Could not close socket. Error: " + std::string(strerror(errno)));
-    }
+    GeneralSocket::close();
 
     isConnected = false;
-
-}
-
-void TCPSocket::getAddrInfo(const std::string address, unsigned int port) {
-
-    addrinfo hints = *socketInfo;
-    const char * cAddress;
-
-    if (address == "NULL") cAddress = NULL;
-    else cAddress = address.c_str();
-
-    int result = getaddrinfo(cAddress, std::to_string(port).c_str(), &hints, &socketInfo);
+    isListening = false;
 
 
-    if (result != 0) {
-        throw ConnectionException("Error on getaddrinfo(): " + std::string(gai_strerror(result)));
-    }
 }
