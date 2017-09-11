@@ -2,7 +2,7 @@
 
 using namespace Socket;
 
-GeneralSocket::GeneralSocket(int type, int flags) {
+BaseSocket::BaseSocket(int type, int flags) {
     socketInfo = new addrinfo;
 
     std::memset(socketInfo, 0, sizeof(addrinfo));
@@ -22,7 +22,7 @@ GeneralSocket::GeneralSocket(int type, int flags) {
     setsockopt(socketFd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 }
 
-GeneralSocket::GeneralSocket(int socket, int type, addrinfo sInfo, int port, bool isBound) :
+BaseSocket::BaseSocket(int socket, int type, addrinfo sInfo, int port, bool isBound) :
                          socketFd(socket), portUsed(port), isBound(isBound) {
 
 
@@ -37,12 +37,12 @@ GeneralSocket::GeneralSocket(int socket, int type, addrinfo sInfo, int port, boo
     setsockopt(socketFd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 }
 
-GeneralSocket::~GeneralSocket() {
-    freeaddrinfo(socketInfo);
-    close();
+BaseSocket::~BaseSocket() {
+    if (socketInfo) freeaddrinfo(socketInfo);
+    ::close(socketFd);
 }
 
-void GeneralSocket::bind(unsigned int port) {
+void BaseSocket::bind(unsigned int port) {
 
     if (isBound) throw ConnectionException("Socket is already bound to port " + std::to_string(portUsed));
 
@@ -82,7 +82,7 @@ void GeneralSocket::bind(unsigned int port) {
                             + ". Error: " + std::string(strerror(errno)));
 }
 
-void GeneralSocket::close() {
+void BaseSocket::close() {
 
     if (socketFd == -1 || isClosed) return;
 
@@ -99,13 +99,16 @@ void GeneralSocket::close() {
 
 }
 
-void GeneralSocket::getAddrInfo(const std::string address, unsigned int port) {
+void BaseSocket::getAddrInfo(const std::string address, unsigned int port) {
 
     addrinfo hints = *socketInfo;
     const char * cAddress;
 
     if (address == "NULL") cAddress = NULL;
     else cAddress = address.c_str();
+
+    if (socketInfo) freeaddrinfo(socketInfo);
+    socketInfo = NULL;  
 
     int result = getaddrinfo(cAddress, std::to_string(port).c_str(), &hints, &socketInfo);
 
@@ -119,10 +122,10 @@ void GeneralSocket::getAddrInfo(const std::string address, unsigned int port) {
  *                  TCPSOCKET
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-TCPSocket::TCPSocket(int flags) : GeneralSocket(SOCK_STREAM, flags) {}
+TCPSocket::TCPSocket(int flags) : BaseSocket(SOCK_STREAM, flags) {}
 
 TCPSocket::TCPSocket(int socket, addrinfo socketInfo, int portUsed, bool isBound, bool isListening, bool isConnected) : 
-                     GeneralSocket(socket, SOCK_STREAM, socketInfo, portUsed, isBound), isListening(isListening), isConnected(isConnected) {
+                     BaseSocket(socket, SOCK_STREAM, socketInfo, portUsed, isBound), isListening(isListening), isConnected(isConnected) {
 }
 
 void TCPSocket::connect(const std::string& address, unsigned int port) {
@@ -190,10 +193,9 @@ TCPSocket TCPSocket::accept() {
         throw ConnectionException("Socket is not listening to incoming connections to accept one");
     }
 
-    sockaddr_in * clientAddress = new sockaddr_in;
-    memset(&clientAddress, 0, sizeof(sockaddr_in));
-    socklen_t sin_size = sizeof(sockaddr_in);
-    int clientFd = ::accept(socketFd, (sockaddr *)&clientAddress, &sin_size);
+    sockaddr clientAddress;
+    socklen_t sin_size = sizeof(sockaddr);
+    int clientFd = ::accept(socketFd, &clientAddress, &sin_size);
 
     if (clientFd == -1) {
         throw ConnectionException("Error while accepting a connection. Error: " + std::string(strerror(errno)));
@@ -204,7 +206,7 @@ TCPSocket TCPSocket::accept() {
 
     clientInfo.ai_family = AF_INET;
     clientInfo.ai_socktype = SOCK_STREAM;
-    clientInfo.ai_addr = (sockaddr*)clientAddress;
+    clientInfo.ai_addr = &clientAddress;
 
     return TCPSocket(clientFd, clientInfo, portUsed, false, false, true);
 
@@ -256,13 +258,13 @@ std::string TCPSocket::recv(unsigned int maxlen, int flags) {
     buffer[result] = '\0';
     std::string message(buffer);
 
-    return message + " " + std::to_string(result);
+    return message;
 
 }
 
 void TCPSocket::close() {
 
-    GeneralSocket::close();
+    BaseSocket::close();
 
     isConnected = false;
     isListening = false;

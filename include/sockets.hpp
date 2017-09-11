@@ -27,7 +27,7 @@ class ClosedConnection : public ConnectionException {
 
 /** Classe base de um wrapper de um socket padrão IPv4.
  */
-class GeneralSocket {
+class BaseSocket {
     public:
 
         /// Vincula o socket a alguma porta.
@@ -42,7 +42,7 @@ class GeneralSocket {
         /// Cria um socket IPv4 de acordo com o protocolo selecionado.
         /// @param type Tipo do socket a ser criado, SOCK_STREAM ou SOCK_DGRAM.
         /// @param flags Flags opcionais para a chamada de getaddrinfo()
-        GeneralSocket(int type, int flags = 0);
+        BaseSocket(int type, int flags = 0);
 
         /// Cria um socket IPv4 copiando as variaveis definidas nos parametros.
         /// @param socket       Descritor de arquivo da socket já criada.
@@ -50,10 +50,10 @@ class GeneralSocket {
         /// @param socketInfo   Addrinfo TCP/IPv4 que já contêm endereços preenchidos.
         /// @param portUsed     Porta na qual o socket foi vinculado.
         /// @param isBound      Indica se o socket está vinculado a alguma porta.
-        GeneralSocket(int socket, int type, addrinfo socketInfo, int portUsed, bool isBound);
+        BaseSocket(int socket, int type, addrinfo socketInfo, int portUsed, bool isBound);
 
         /// Destrutor. Libera memórias alocadas e encerra o socket.
-        ~GeneralSocket();
+        ~BaseSocket();
 
         /// Preenche socketInfo com endereços possíveis de se realizar chamadas
         /// de bind() ou connect().
@@ -91,7 +91,7 @@ class GeneralSocket {
  *  e recv() para trocar informações com o servidor.
  *      A conexão é fechada normalmente usando a função close().
  */
-class TCPSocket : public GeneralSocket {
+class TCPSocket : public BaseSocket {
     public:
 
         /// Cria um socket TCP/IPv4.
