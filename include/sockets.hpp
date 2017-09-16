@@ -19,6 +19,11 @@ class ConnectionException : public std::runtime_error {
     public:
         ConnectionException(const std::string& error) : std::runtime_error(error) {}
 };
+ 
+class SocketException : public std::runtime_error {
+    public:
+        SocketException(const std::string& error) : std::runtime_error(error) {}
+};
 
 class ClosedConnection : public ConnectionException {
     public:
@@ -33,9 +38,6 @@ class BaseSocket {
         /// Vincula o socket a alguma porta.
         /// @param port Número da porta que o socket será vinculado.
         void bind(unsigned int port);
-        
-        /// Encerra o socket.
-        void close();
 
     protected:
 
@@ -44,16 +46,20 @@ class BaseSocket {
         /// @param flags Flags opcionais para a chamada de getaddrinfo()
         BaseSocket(int type, int flags = 0);
 
-        /// Cria um socket IPv4 copiando as variaveis definidas nos parametros.
+        /// Cria um novo objeto com informações de uma socket IPv4 já criada.
         /// @param socket       Descritor de arquivo da socket já criada.
         /// @param type         Tipo do socket (SOCK_DGRAM ou SOCK_STREAM).
         /// @param socketInfo   Addrinfo TCP/IPv4 que já contêm endereços preenchidos.
         /// @param portUsed     Porta na qual o socket foi vinculado.
         /// @param isBound      Indica se o socket está vinculado a alguma porta.
-        BaseSocket(int socket, int type, addrinfo socketInfo, int portUsed, bool isBound);
+        BaseSocket(int socket, int type, addrinfo socketInfo, 
+            unsigned int portUsed, bool isBound);
 
         /// Destrutor. Libera memórias alocadas e encerra o socket.
         ~BaseSocket();
+        
+        /// Encerra o socket.
+        void close();
 
         /// Preenche socketInfo com endereços possíveis de se realizar chamadas
         /// de bind() ou connect().
@@ -69,7 +75,7 @@ class BaseSocket {
         int socketFd = -1;
 
         /// Port used by bind()
-        int portUsed = -1;
+        unsigned int portUsed = -1;
 
         /// Is socket bound to a specific port
         bool isBound = false;
@@ -97,15 +103,6 @@ class TCPSocket : public BaseSocket {
         /// Cria um socket TCP/IPv4.
         /// @param flags Flags opcionais para a chamada de getaddrinfo()
         TCPSocket(int flags = 0);
-
-        /// Cria um socket TCP/IPv4 copiando as variaveis definidas nos parametros.
-        /// @param socket       Descritor de arquivo da socket já criada.
-        /// @param socketInfo   Addrinfo TCP/IPv4 que já contêm endereços preenchidos.
-        /// @param portUsed     Porta na qual o socket foi vinculado.
-        /// @param isBound      Indica se o socket está vinculado a alguma porta.
-        /// @param isListening  Indica se o socket já está ouvindo em alguma porta.
-        /// @param isConnected  Indica se o socket está conectado a algum servidor.
-        TCPSocket(int socket, addrinfo socketInfo, int portUsed, bool isBound, bool isListening, bool isConnected);
         
         /// Conecta a socket a algum endereço.
         /// @param address std::string contendo o endereço IP ou domínio a ser conectado.
@@ -135,17 +132,53 @@ class TCPSocket : public BaseSocket {
         void close();
 
     private:
+
+        /// Cria um socket TCP/IPv4 copiando as variaveis definidas nos parametros.
+        /// @param socket       Descritor de arquivo da socket já criada.
+        /// @param socketInfo   Addrinfo TCP/IPv4 que já contêm endereços preenchidos.
+        /// @param portUsed     Porta na qual o socket foi vinculado.
+        /// @param isBound      Indica se o socket está vinculado a alguma porta.
+        /// @param isListening  Indica se o socket já está ouvindo em alguma porta.
+        /// @param isConnected  Indica se o socket está conectado a algum servidor.
+        TCPSocket(int socket, addrinfo socketInfo, unsigned int portUsed, 
+            bool isBound, bool isListening, bool isConnected);
         
-        /// Is socket connected to another socket
+        /// Se o socket está conectada a algum endereço
         bool isConnected = false;
 
-        /// Is socket listening for incoming connections
+        /// Se o socket está ouvindo conexões
         bool isListening = false;
 
 };
 
+class UDPRecv {
+    friend class UDPSocket;
 
-/** Wrapper de um socket UDP/IPv4.
+    public:
+        std::string getAddress() {
+            return this->address;
+        }
+
+        std::string getMsg() {
+            return this->msg;
+        }
+
+        unsigned int getPort() {
+            return this->port;
+        }
+
+    private:
+
+        UDPRecv(std::string address, std::string msg, unsigned int port);
+
+        std::string address;
+        std::string msg;
+
+        unsigned int port;
+};
+
+
+/** Wrapper de um socket UDP/IPv4 sem possiblidade de connect().
  *  
  *      Para usar como um servidor (recebendo conexões) construa o objeto,
  *  faça o bind() receba mensagens usando recv() e as responda com send().
@@ -154,7 +187,26 @@ class TCPSocket : public BaseSocket {
  *      A conexão é fechada normalmente usando a função close().
  */
 class UDPSocket {
+    public:
+        /// Envia uma string ao endereço definido.
+        /// @param address std::string contendo o endereço IP ou domínio de destino.
+        /// @param port    Porta de destino.
+        /// @param message Mensagem a ser enviada.
+        /// @param flags   Flags opcionais para o envio da mensagem ao socket.
+        void sendto(const std::string& address, unsigned int port,
+                    const std::string& message, int flags = 0);
 
+        /// Recebe uma string do endereço definido.
+        /// @param address std::string contendo o endereço IP ou domínio de origem. 
+        ///     "NULL" para indefinido.
+        /// @param port Porta de origem. 0 para indefinida.
+        /// @param maxlen Tamanho máximo da mensagem a ser recebida.
+        /// @param flags  Flags opcionais para o recebimento da mensagem.
+        /// @return std::string contendo a mensagem recebida.
+        UDPRecv recvfrom(const std::string& address, unsigned int port,
+                             unsigned int maxlen, int flags = 0);
+
+    private:
 
 };
 

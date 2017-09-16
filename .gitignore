@@ -4,5 +4,6 @@
 # Main executable file
 /lumify
 
-# Testing folder while developing something
-/testing
+# Testing folder executables
+/testing/client
+/testing/server
