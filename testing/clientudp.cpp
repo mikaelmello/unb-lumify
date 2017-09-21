@@ -7,17 +7,25 @@ using namespace Socket;
 using namespace std;
 
 int main() {
-    TCPSocket cl1(0);
+    UDPSocket cl1;
 
     try {
-        cl1.connect("localhost", 1234);
+        string add;
+        int port;
         for (;;) {
             int input;
             string legal;
             cin >> input >> legal;
-            if (input == 1) std::cout << cl1.recv(256) << std::endl;
+            if (input == 1) {
+                
+                UDPRecv xd = cl1.recvfrom(256);
+                cout << xd.getMsg() << endl;
+                add = xd.getAddress();
+                port = xd.getPort();
+
+            }
             else {
-                cl1.send(legal + "\n");
+                cl1.sendto("localhost", 1234, legal + "\n");
             }
 
         }

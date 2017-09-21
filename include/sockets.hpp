@@ -6,6 +6,8 @@
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 #include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <netdb.h>
@@ -67,20 +69,25 @@ class BaseSocket {
         /// @param port Porta a ser realizada a busca.
         void getAddrInfo(const std::string address, unsigned int port);
 
+        /// Verifica se a string é um endereço IP válido.
+        /// @param ipAddress std::string a ser avaliada
+        /// @return True caso ipAddress seja um enderçeo IP válido, false caso contrário.
+        bool validateIpAddress(const std::string &ipAddress);
+
         /// Contém as informações do socket.
         /// Socket será sempre TCP/IPv4 ou UDP/IPv4.
         addrinfo * socketInfo;
         
-        /// Socket file descriptor.
+        /// Descritor do arquivo da socket
         int socketFd = -1;
 
-        /// Port used by bind()
+        /// Porta usada pelo bind()
         unsigned int portUsed = -1;
 
-        /// Is socket bound to a specific port
+        /// Se a socket está vinculada a alguma porta.
         bool isBound = false;
 
-        /// Is socket already closed
+        /// Se a socket foi fechada.
         bool isClosed = false;
 
 };
@@ -151,29 +158,57 @@ class TCPSocket : public BaseSocket {
 
 };
 
+
+/** Objeto que representa um datagrama recebido por uma socket UDP.
+ *  
+ *      Um datagrama UDP além de conter a mensagem, contém informações
+ *  a respeito do endereço que enviou a mensagem ao servidor.
+ */
 class UDPRecv {
+    /// Garante que apenas instâncias de UDPSocket possam criar um objeto UDPRecv.
     friend class UDPSocket;
 
     public:
+        /// Get para a variável address.
         std::string getAddress() {
             return this->address;
         }
 
+        /// Get para a variável name.
+        std::string getName() {
+            return this->name;
+        }
+
+        /// Get para a variável msg.
         std::string getMsg() {
             return this->msg;
         }
 
+        /// Get para a variável port.
         unsigned int getPort() {
             return this->port;
         }
 
     private:
 
-        UDPRecv(std::string address, std::string msg, unsigned int port);
+        /// Construtor privado, apenas instâncias de UDPSocket podem instanciar UDPRecv.
+        /// @param name Nome canônico do transmissor da mensagem.
+        /// @param address Endereço do transmissor da mensagem.
+        /// @param msg Mensagem enviada pelo transmissor.
+        /// @param port Porta na qual o transmissor enviou a mensagem.
+        UDPRecv(const std::string& name, const std::string& address, const std::string& msg, 
+                unsigned int port);
 
+        /// Endereço do transmissor da mensagem.
         std::string address;
+
+        /// Nome canônico do transmissor da mensagem.
+        std::string name;
+
+        /// Mensagem enviada pelo transmissor.
         std::string msg;
 
+        /// Porta na qual o transmissor enviou a mensagem.
         unsigned int port;
 };
 
@@ -186,8 +221,13 @@ class UDPRecv {
  *  send() e recv() para trocar informações com o servidor.
  *      A conexão é fechada normalmente usando a função close().
  */
-class UDPSocket {
+class UDPSocket : public BaseSocket {
     public:
+
+        /// Cria um socket UDP/IPv4.
+        /// @param flags Flags opcionais para a chamada de getaddrinfo()
+        UDPSocket(int flags = 0);
+
         /// Envia uma string ao endereço definido.
         /// @param address std::string contendo o endereço IP ou domínio de destino.
         /// @param port    Porta de destino.
@@ -197,14 +237,10 @@ class UDPSocket {
                     const std::string& message, int flags = 0);
 
         /// Recebe uma string do endereço definido.
-        /// @param address std::string contendo o endereço IP ou domínio de origem. 
-        ///     "NULL" para indefinido.
-        /// @param port Porta de origem. 0 para indefinida.
         /// @param maxlen Tamanho máximo da mensagem a ser recebida.
         /// @param flags  Flags opcionais para o recebimento da mensagem.
         /// @return std::string contendo a mensagem recebida.
-        UDPRecv recvfrom(const std::string& address, unsigned int port,
-                             unsigned int maxlen, int flags = 0);
+        UDPRecv recvfrom(unsigned int maxlen, int flags = 0);
 
     private:
 

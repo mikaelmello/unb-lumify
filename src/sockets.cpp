@@ -144,6 +144,12 @@ void BaseSocket::getAddrInfo(const std::string address, unsigned int port) {
     socketInfo = newSocketInfo;  
 }
 
+bool BaseSocket::validateIpAddress(const std::string &ipAddress) {
+    sockaddr_in sa;
+    int result = ::inet_pton(AF_INET, ipAddress.c_str(), &(sa.sin_addr));
+    return result != 0;
+}
+
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
  *                  TCPSOCKET
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -305,21 +311,91 @@ void TCPSocket::close() {
  *                  UDPRECV
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-UDPRecv::UDPRecv(std::string address, std::string msg, unsigned int port) :
-    address(address), msg(msg), port(port) {
+UDPRecv::UDPRecv(const std::string& name, const std::string& address, const std::string& msg, unsigned int port) :
+                 name(name), address(address), msg(msg), port(port) {
 }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
  *                  UDPSOCKET
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+UDPSocket::UDPSocket(int flags) : BaseSocket(SOCK_DGRAM, flags) {}
+
 void UDPSocket::sendto(const std::string& address, unsigned int port, 
     const std::string& message, int flags) {
 
+    int msgLength = message.length();
+    int bytesLeft = msgLength;
+    int bytesSent = 0;
+    const char* cMessage = message.c_str();
+
+    socklen_t serverLength;
+    sockaddr_in serverAddress;
+    hostent *server;
+
+    /* build the server's Internet address */
+    ::memset(&serverAddress, 0, sizeof(serverAddress));
+    serverAddress.sin_family = AF_INET;
+
+    if (!validateIpAddress(address)) {
+        server = ::gethostbyname(address.c_str());
+        if (server == NULL) {
+            throw ConnectionException("No such host as " + address);
+        }
+        ::memcpy(server->h_addr, &serverAddress.sin_addr.s_addr, server->h_length);
+
+    }
+    else {
+        ::inet_pton(AF_INET, address.c_str(), &(serverAddress.sin_addr));
+    }
+
+    serverAddress.sin_port = ::htons(port);
+    serverLength = sizeof(serverAddress);
+
+    while (bytesSent < msgLength) {
+
+        const char* cMessageLeft = cMessage + bytesSent;
+
+        int result = ::sendto(socketFd, cMessageLeft, bytesLeft, flags | MSG_NOSIGNAL, 
+                             (sockaddr*) &serverAddress, serverLength);
+        if (result == -1) {
+            throw ConnectionException("Could not send message. Error: " 
+                + std::string(strerror(errno)));
+        }
+
+        bytesLeft -= result;
+        bytesSent += result;
+
+    }
+
 }
 
-UDPRecv UDPSocket::recvfrom(const std::string& address, unsigned int port,
-    unsigned int maxlen, int flags) {
+UDPRecv UDPSocket::recvfrom(unsigned int maxlen, int flags) {
+    
+    sockaddr_in clientAddress;
+    hostent* clientInfo;
+    socklen_t clientLength = sizeof(clientAddress);
+
+    char buffer[maxlen+1];
+    int result = ::recvfrom(socketFd, buffer, maxlen, flags, (sockaddr *) &clientAddress, &clientLength);
+
+    if (result == -1) {
+        throw ConnectionException("Could not receive message. Error: " 
+            + std::string(strerror(errno)));
+    }
+    buffer[result] = '\0';
+
+    clientInfo = ::gethostbyaddr((const char *)&clientAddress.sin_addr.s_addr, 
+                               sizeof(clientAddress.sin_addr.s_addr), AF_INET);
+
+    std::string hostName(clientInfo->h_name);
+    std::string hostAddress(::inet_ntoa(clientAddress.sin_addr));
+    std::string message(buffer);
+
+    int port = ::ntohs(clientAddress.sin_port);
+
+    return UDPRecv(hostName, hostAddress, message, port);
+
 
 }
 

@@ -7,3 +7,5 @@
 # Testing folder executables
 /testing/client
 /testing/server
+/testing/clientudp
+/testing/serverudp

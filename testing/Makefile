@@ -1,7 +1,7 @@
 CPP      = g++
 CC       = gcc
-OBJ      = client.o server.o ../src/sockets.o
-LINKOBJ  = server.o client.o ../src/sockets.o
+OBJ      = client.o server.o clientudp.o serverudp.o ../src/sockets.o
+LINKOBJ  = server.o client.o clientudp.o serverudp.o ../src/sockets.o
 LIBS     = 
 INCS     = 
 CXXINCS  = 
@@ -12,13 +12,14 @@ RM       = rm -f
 
 .PHONY: all all-before all-after clean clean-custom client server
 
-all: clean client server
+all: clean client server clientudp serverudp
 
-$(BIN): $(OBJ)
-	$(CPP) $(LINKOBJ) -o $(BIN) $(LIBS)
+tcp: clean client server
+
+udp: clean clientudp serverudp
 
 clean: clean-custom
-	${RM} $(OBJ) client server
+	${RM} $(OBJ) client server clientudp serverudp
 
 client: client.o ../src/sockets.o
 	$(CPP) client.o ../src/sockets.o -o client $(LIBS)
@@ -32,8 +33,17 @@ client.o:
 server.o:
 	$(CPP) -c server.cpp -o server.o $(CXXFLAGS)
 
-src/main.o: src/main.cpp
-	$(CPP) -c src/main.cpp -o src/main.o $(CXXFLAGS)
+clientudp: clientudp.o ../src/sockets.o
+	$(CPP) clientudp.o ../src/sockets.o -o clientudp $(LIBS)
+
+serverudp: serverudp.o ../src/sockets.o
+	$(CPP) serverudp.o ../src/sockets.o -o serverudp $(LIBS)
+
+clientudp.o:
+	$(CPP) -c clientudp.cpp -o clientudp.o $(CXXFLAGS)
+
+serverudp.o:
+	$(CPP) -c serverudp.cpp -o serverudp.o $(CXXFLAGS)
 
 ../src/sockets.o: ../src/sockets.cpp
 	$(CPP) -c ../src/sockets.cpp -o ../src/sockets.o $(CXXFLAGS)
