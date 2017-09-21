@@ -1,0 +1,11 @@
+# Ignoring object files
+*.o
+
+# Main executable file
+/lumify
+
+# Testing folder executables
+/testing/client
+/testing/server
+/testing/clientudp
+/testing/serverudp
