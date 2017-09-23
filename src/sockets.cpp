@@ -26,7 +26,7 @@ BaseSocket::BaseSocket(int type, int flags) {
     setsockopt(socketFd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 }
 
-BaseSocket::BaseSocket(int socket, int type, addrinfo sInfo, unsigned int port, bool isBound) :
+BaseSocket::BaseSocket(int socket, int type, addrinfo sInfo, uint32_t port, bool isBound) :
     socketFd(socket), portUsed(port), isBound(isBound) {
 
     // Verifica que o endereço é IPv4 e do mesmo tipo definido pelo parâmetro
@@ -48,7 +48,7 @@ BaseSocket::~BaseSocket() {
     close();
 }
 
-void BaseSocket::bind(unsigned int port) {
+void BaseSocket::bind(uint32_t port) {
 
     // Não é possivel vincular um socket que já está vinculado
     // Logo se a porta desejada for a mesma que já está vinculada, nada acontece.
@@ -121,7 +121,7 @@ void BaseSocket::close() {
 
 }
 
-void BaseSocket::getAddrInfo(const std::string address, unsigned int port) {
+void BaseSocket::getAddrInfo(const std::string address, uint32_t port) {
 
     addrinfo   hints = *socketInfo;
     addrinfo * newSocketInfo;
@@ -156,11 +156,11 @@ bool BaseSocket::validateIpAddress(const std::string &ipAddress) {
 
 TCPSocket::TCPSocket(int flags) : BaseSocket(SOCK_STREAM, flags) {}
 
-TCPSocket::TCPSocket(int socket, addrinfo socketInfo, unsigned int portUsed, bool isBound, bool isListening, bool isConnected) : 
+TCPSocket::TCPSocket(int socket, addrinfo socketInfo, uint32_t portUsed, bool isBound, bool isListening, bool isConnected) : 
     BaseSocket(socket, SOCK_STREAM, socketInfo, portUsed, isBound), isListening(isListening), isConnected(isConnected) {
 }
 
-void TCPSocket::connect(const std::string& address, unsigned int port) {
+void TCPSocket::connect(const std::string& address, uint32_t port) {
 
     if (isListening) {
         throw SocketException("Socket is already listening incoming connections on port " 
@@ -199,7 +199,7 @@ void TCPSocket::connect(const std::string& address, unsigned int port) {
 
 }
         
-void TCPSocket::listen(unsigned int backlog) {
+void TCPSocket::listen(uint32_t backlog) {
 
     if (!isBound) {
         throw SocketException("Can not listen when socket is not bound to any port");
@@ -246,19 +246,22 @@ TCPSocket TCPSocket::accept() {
 }
         
 void TCPSocket::send(const std::string& message, int flags) {
+    send((uint8_t *) message.c_str(), message.length() + 1, flags);
+}
+        
+void TCPSocket::send(const uint8_t* message, int length, int flags) {
 
     if (isListening || !isConnected) {
         throw SocketException("Can't send message from a socket that is not connected");
     }
 
-    int msgLength = message.length();
-    int bytesLeft = msgLength;
+    int bytesLeft = length;
     int bytesSent = 0;
-    const char* cMessage = message.c_str();
+    const uint8_t* cMessageLeft;
 
-    while (bytesSent < msgLength) {
+    while (bytesSent < length) {
 
-        const char* cMessageLeft = cMessage + bytesSent;
+        cMessageLeft = message + bytesSent;
 
         int result = ::send(socketFd, cMessageLeft, bytesLeft, flags | MSG_NOSIGNAL);
         if (result == -1) {
@@ -273,13 +276,25 @@ void TCPSocket::send(const std::string& message, int flags) {
 
 }
 
-std::string TCPSocket::recv(unsigned int maxlen, int flags) {
+std::string TCPSocket::recv(uint64_t maxlen, int flags) {
+
+    uint8_t* message = recv(&maxlen, flags);
+
+    std::string stringMessage((char *) message);
+    free(message);
+    return stringMessage;
+
+}
+
+uint8_t* TCPSocket::recv(uint64_t* length, int flags) {
 
     if (isListening || !isConnected) {
         throw SocketException("Can't receive message in a socket that is not connected");
     }
 
-    char buffer[maxlen+1];
+    uint64_t maxlen = *length;
+
+    uint8_t buffer[maxlen];
     int result = ::recv(socketFd, buffer, maxlen, flags);
 
     if (result == -1) {
@@ -290,8 +305,10 @@ std::string TCPSocket::recv(unsigned int maxlen, int flags) {
         isConnected = false;
         throw ClosedConnection("Client closed connection.");
     }
-    buffer[result] = '\0';
-    std::string message(buffer);
+
+    uint8_t* message = (uint8_t *) malloc(result);
+    memcpy(message, buffer, result);
+    *length = result;
 
     return message;
 
@@ -304,14 +321,13 @@ void TCPSocket::close() {
     isConnected = false;
     isListening = false;
 
-
 }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
  *                  UDPRECV
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-UDPRecv::UDPRecv(const std::string& name, const std::string& address, const std::string& msg, unsigned int port) :
+UDPRecv::UDPRecv(const std::string& name, const std::string& address, const std::string& msg, uint32_t port) :
                  name(name), address(address), msg(msg), port(port) {
 }
 
@@ -321,7 +337,7 @@ UDPRecv::UDPRecv(const std::string& name, const std::string& address, const std:
 
 UDPSocket::UDPSocket(int flags) : BaseSocket(SOCK_DGRAM, flags) {}
 
-void UDPSocket::sendto(const std::string& address, unsigned int port, 
+void UDPSocket::sendto(const std::string& address, uint32_t port, 
     const std::string& message, int flags) {
 
     int msgLength = message.length();
@@ -370,7 +386,7 @@ void UDPSocket::sendto(const std::string& address, unsigned int port,
 
 }
 
-UDPRecv UDPSocket::recvfrom(unsigned int maxlen, int flags) {
+UDPRecv UDPSocket::recvfrom(uint64_t maxlen, int flags) {
     
     sockaddr_in clientAddress;
     hostent* clientInfo;

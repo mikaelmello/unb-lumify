@@ -39,7 +39,7 @@ class BaseSocket {
 
         /// Vincula o socket a alguma porta.
         /// @param port Número da porta que o socket será vinculado.
-        void bind(unsigned int port);
+        void bind(uint32_t port);
 
     protected:
 
@@ -55,7 +55,7 @@ class BaseSocket {
         /// @param portUsed     Porta na qual o socket foi vinculado.
         /// @param isBound      Indica se o socket está vinculado a alguma porta.
         BaseSocket(int socket, int type, addrinfo socketInfo, 
-            unsigned int portUsed, bool isBound);
+            uint32_t portUsed, bool isBound);
 
         /// Destrutor. Libera memórias alocadas e encerra o socket.
         ~BaseSocket();
@@ -67,7 +67,7 @@ class BaseSocket {
         /// de bind() ou connect().
         /// @param address Endereço a ser procurado (IPv4 ou domínio).
         /// @param port Porta a ser realizada a busca.
-        void getAddrInfo(const std::string address, unsigned int port);
+        void getAddrInfo(const std::string address, uint32_t port);
 
         /// Verifica se a string é um endereço IP válido.
         /// @param ipAddress std::string a ser avaliada
@@ -82,7 +82,7 @@ class BaseSocket {
         int socketFd = -1;
 
         /// Porta usada pelo bind()
-        unsigned int portUsed = -1;
+        uint32_t portUsed = -1;
 
         /// Se a socket está vinculada a alguma porta.
         bool isBound = false;
@@ -114,15 +114,28 @@ class TCPSocket : public BaseSocket {
         /// Conecta a socket a algum endereço.
         /// @param address std::string contendo o endereço IP ou domínio a ser conectado.
         /// @param port    Porta a qual se conectar.
-        void connect(const std::string& address, unsigned int port);
+        void connect(const std::string& address, uint32_t port);
         
         /// Recebe conexões na porta definida previamente pela função bind().
         /// @param backlog Número máximo de conexões pendentes.
-        void listen(unsigned int backlog = 5);
+        void listen(uint32_t backlog = 5);
         
         /// Aceita uma conexão pendente após chamar a função listen().
         /// @return Objeto TCPSocket conectado ao cliente aceito.
         TCPSocket accept(); 
+        
+        /// Envia uma quantidade específica de bytes para o endereço conectado.
+        /// @param message Endereço inicial da mensagem a ser enviada.
+        /// @param length Indica quantos bytes devem ser enviados
+        /// @param flags   Flags opcionais para o envio da mensagem ao socket.
+        void send(const uint8_t* message, int length, int flags = 0);  
+        
+        /// Recebe uma mensagem do endereço conectado.
+        /// @param maxlen Tamanho máximo da mensagem a ser recebida.
+        /// @param flags  Flags opcionais para o recebimento da mensagem.
+        /// @return Endereço com os bytes recebidos, maxlen é alterado de modo
+        ///         a refletir quantos bytes foram recebidos.
+        uint8_t* recv(uint64_t* maxlen, int flags = 0);
         
         /// Envia uma string ao endereço conectado.
         /// @param message Mensagem a ser enviada.
@@ -133,7 +146,9 @@ class TCPSocket : public BaseSocket {
         /// @param maxlen Tamanho máximo da mensagem a ser recebida.
         /// @param flags  Flags opcionais para o recebimento da mensagem.
         /// @return std::string contendo a mensagem recebida.
-        std::string recv(unsigned int maxlen, int flags = 0);
+        std::string recv(uint64_t maxlen, int flags = 0);
+
+        
         
         /// Encerra o socket.
         void close();
@@ -147,7 +162,7 @@ class TCPSocket : public BaseSocket {
         /// @param isBound      Indica se o socket está vinculado a alguma porta.
         /// @param isListening  Indica se o socket já está ouvindo em alguma porta.
         /// @param isConnected  Indica se o socket está conectado a algum servidor.
-        TCPSocket(int socket, addrinfo socketInfo, unsigned int portUsed, 
+        TCPSocket(int socket, addrinfo socketInfo, uint32_t portUsed, 
             bool isBound, bool isListening, bool isConnected);
         
         /// Se o socket está conectada a algum endereço
@@ -185,7 +200,7 @@ class UDPRecv {
         }
 
         /// Get para a variável port.
-        unsigned int getPort() {
+        uint32_t getPort() {
             return this->port;
         }
 
@@ -197,7 +212,7 @@ class UDPRecv {
         /// @param msg Mensagem enviada pelo transmissor.
         /// @param port Porta na qual o transmissor enviou a mensagem.
         UDPRecv(const std::string& name, const std::string& address, const std::string& msg, 
-                unsigned int port);
+                uint32_t port);
 
         /// Endereço do transmissor da mensagem.
         std::string address;
@@ -209,7 +224,7 @@ class UDPRecv {
         std::string msg;
 
         /// Porta na qual o transmissor enviou a mensagem.
-        unsigned int port;
+        uint32_t port;
 };
 
 
@@ -233,14 +248,14 @@ class UDPSocket : public BaseSocket {
         /// @param port    Porta de destino.
         /// @param message Mensagem a ser enviada.
         /// @param flags   Flags opcionais para o envio da mensagem ao socket.
-        void sendto(const std::string& address, unsigned int port,
+        void sendto(const std::string& address, uint32_t port,
                     const std::string& message, int flags = 0);
 
         /// Recebe uma string do endereço definido.
         /// @param maxlen Tamanho máximo da mensagem a ser recebida.
         /// @param flags  Flags opcionais para o recebimento da mensagem.
         /// @return std::string contendo a mensagem recebida.
-        UDPRecv recvfrom(unsigned int maxlen, int flags = 0);
+        UDPRecv recvfrom(uint64_t maxlen, int flags = 0);
 
     private:
 

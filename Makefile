@@ -4,7 +4,7 @@ OBJ      = src/main.o src/sockets.o
 LINKOBJ  = src/main.o src/sockets.o
 LIBS     = 
 INCS     = 
-CXXINCS  = 
+CXXINCS  = -I"include/"
 BIN      = lumify
 CXXFLAGS = $(CXXINCS) -std=c++11 -g3 -ggdb3
 CFLAGS   = $(INCS) -std=c11 -ggdb3
