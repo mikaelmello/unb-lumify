@@ -1,4 +1,5 @@
 # Ignoring object files
+obj/
 *.o
 
 # Main executable file

@@ -1,7 +1,7 @@
 CPP      = g++
 CC       = gcc
-OBJ      = src/main.o src/sockets.o
-LINKOBJ  = src/main.o src/sockets.o
+SRCS	 = $(shell find src -name '*.cpp')
+OBJ      = $(addprefix obj/,$(notdir $(SRCS:%.cpp=%.o))) 
 LIBS     = 
 INCS     = 
 CXXINCS  = -I"include/"
@@ -12,16 +12,13 @@ RM       = rm -f
 
 .PHONY: all all-before all-after clean clean-custom
 
-all: all-before $(BIN) all-after
+all: $(BIN) all-after
 
 clean: clean-custom
 	${RM} $(OBJ) $(BIN)
 
 $(BIN): $(OBJ)
-	$(CPP) $(LINKOBJ) -o $(BIN) $(LIBS)
+	$(CPP) $(OBJ) -o $(BIN) $(LIBS)
 
-src/main.o: src/main.cpp
-	$(CPP) -c src/main.cpp -o src/main.o $(CXXFLAGS)
-
-src/sockets.o: src/sockets.cpp
-	$(CPP) -c src/sockets.cpp -o src/sockets.o $(CXXFLAGS)
+obj/%.o: src/%.cpp
+	$(CPP) -c $< -o $@ $(CXXFLAGS)
