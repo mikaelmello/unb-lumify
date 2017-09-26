@@ -6,28 +6,28 @@ using namespace Socket;
 
 BaseSocket::BaseSocket(int type, int flags) {
 
-    // Inicializa socketInfo
-    socketInfo = new addrinfo;
-    std::memset(socketInfo, 0, sizeof(addrinfo));
+    // Inicializa socket_info
+    socket_info = new addrinfo;
+    std::memset(socket_info, 0, sizeof(addrinfo));
 
     // Prenche a estrutura de endereço do socket, sempre IPv4
-    socketInfo->ai_family = AF_INET;
-    socketInfo->ai_socktype = type;
-    socketInfo->ai_flags = flags;
+    socket_info->ai_family = AF_INET;
+    socket_info->ai_socktype = type;
+    socket_info->ai_flags = flags;
 
-    // Mesma família (IPv4) e tipo de socket da socketInfo
-    socketFd = socket(AF_INET, type, 0);
-    if (socketFd == -1) {
+    // Mesma família (IPv4) e tipo de socket da socket_info
+    socketfd = socket(AF_INET, type, 0);
+    if (socketfd == -1) {
         throw SocketException("Could not create socket. Error: " + std::string(strerror(errno)));
     }
 
     // Permite reuso de endereço (evita "Address already in use")
     int optval = 1;
-    setsockopt(socketFd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+    setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 }
 
-BaseSocket::BaseSocket(int socket, int type, addrinfo sInfo, uint32_t port, bool isBound) :
-    socketFd(socket), portUsed(port), isBound(isBound) {
+BaseSocket::BaseSocket(int socket, int type, addrinfo sInfo, uint32_t port, bool is_bound) :
+    socketfd(socket), port_used(port), is_bound(is_bound) {
 
     // Verifica que o endereço é IPv4 e do mesmo tipo definido pelo parâmetro
     if (sInfo.ai_family != AF_INET || sInfo.ai_socktype != type) {
@@ -35,16 +35,16 @@ BaseSocket::BaseSocket(int socket, int type, addrinfo sInfo, uint32_t port, bool
     }
 
     // Copia as inforamações do sInfo (sockaddr).
-    socketInfo = new addrinfo(sInfo);
+    socket_info = new addrinfo(sInfo);
 
     // Permite reuso de endereço (evita "Address already in use")
     int optval = 1;
-    setsockopt(socketFd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+    setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 }
 
 BaseSocket::~BaseSocket() {
     // Libera memória e encerra o socket
-    if (socketInfo) freeaddrinfo(socketInfo);
+    if (socket_info) freeaddrinfo(socket_info);
     close();
 }
 
@@ -53,11 +53,11 @@ void BaseSocket::bind(uint32_t port) {
     // Não é possivel vincular um socket que já está vinculado
     // Logo se a porta desejada for a mesma que já está vinculada, nada acontece.
     // Uma exceção é lançada caso contrário
-    if (isBound && portUsed != port) {
+    if (is_bound && port_used != port) {
         throw ConnectionException("Socket is already bound to port " 
-            + std::to_string(portUsed));
+            + std::to_string(port_used));
     }
-    else if (isBound && portUsed == port) {
+    else if (is_bound && port_used == port) {
         return;
     }
 
@@ -68,32 +68,32 @@ void BaseSocket::bind(uint32_t port) {
     // argument is the null pointer, then the IP address portion
     // of the socket address structure will be set to INADDR_ANY 
     // for an IPv4 address
-    socketInfo->ai_flags |= AI_PASSIVE;
+    socket_info->ai_flags |= AI_PASSIVE;
     getAddrInfo("NULL", port);
 
 
     int result;
-    int totalIPv4Addrs = 0; // Conta quandos endereços IPv4 foram encontrados
-    addrinfo * newAddrInfo;
+    int total_ipv4_addrs = 0; // Conta quandos endereços IPv4 foram encontrados
+    addrinfo * new_addrinfo;
 
-    for (newAddrInfo = socketInfo; newAddrInfo; newAddrInfo = newAddrInfo->ai_next) {
+    for (new_addrinfo = socket_info; new_addrinfo; new_addrinfo = new_addrinfo->ai_next) {
 
         // Ignora qualquer endereço não IPv4
-        if (newAddrInfo->ai_family == AF_INET) totalIPv4Addrs++;
+        if (new_addrinfo->ai_family == AF_INET) total_ipv4_addrs++;
         else continue;
 
         // Tenta vincular a qualquer endereço IPv4 encontrado.
-        result = ::bind(socketFd, newAddrInfo->ai_addr, newAddrInfo->ai_addrlen);
+        result = ::bind(socketfd, new_addrinfo->ai_addr, new_addrinfo->ai_addrlen);
         if (result == -1) continue;
 
         // Se a operação é bem-sucedida, seta as variáveis e retorna
-        portUsed = port;
-        isBound = true;
+        port_used = port;
+        is_bound = true;
         return;
     }
 
     // Se nenhum endereço IPv4 é lançado, lança exceção
-    if (totalIPv4Addrs == 0) {
+    if (total_ipv4_addrs == 0) {
         throw ConnectionException("Could not find IPv4 addresses to bind on port " 
             + std::to_string(port) + ".");
     }
@@ -106,47 +106,47 @@ void BaseSocket::bind(uint32_t port) {
 void BaseSocket::close() {
 
     // Se a socket não foi setada ou já foi fechada, nada acontece.
-    if (socketFd == -1 || isClosed) return;
+    if (socketfd == -1 || is_closed) return;
 
-    int result = ::close(socketFd);
+    int result = ::close(socketfd);
     if (result == -1) {
         throw SocketException("Could not close socket. Error: " + 
             std::string(strerror(errno)));
     }
 
-    isBound = false;
-    isClosed = true;
-    portUsed = -1;
-    socketFd = -1;
+    is_bound = false;
+    is_closed = true;
+    port_used = -1;
+    socketfd = -1;
 
 }
 
 void BaseSocket::getAddrInfo(const std::string address, uint32_t port) {
 
-    addrinfo   hints = *socketInfo;
-    addrinfo * newSocketInfo;
-    const char * cAddress;
+    addrinfo   hints = *socket_info;
+    addrinfo * new_socket_info;
+    const char * c_address;
 
-    // cAddress = NULL significa que o getaddrinf() buscará por endereços
+    // c_address = NULL significa que o getaddrinf() buscará por endereços
     // locais da maquina
-    if (address == "NULL") cAddress = NULL;
-    else cAddress = address.c_str();
+    if (address == "NULL") c_address = NULL;
+    else c_address = address.c_str();
 
-    int result = getaddrinfo(cAddress, std::to_string(port).c_str(), &hints, &newSocketInfo);
+    int result = getaddrinfo(c_address, std::to_string(port).c_str(), &hints, &new_socket_info);
 
     if (result != 0) {
         throw ConnectionException("Error on getaddrinfo(): " + 
             std::string(gai_strerror(result)));
     }
 
-    // Libera a memoria da socketInfo atual para ela ser realocada por getaddrinfo()
-    if (socketInfo) freeaddrinfo(socketInfo);
-    socketInfo = newSocketInfo;  
+    // Libera a memoria da socket_info atual para ela ser realocada por getaddrinfo()
+    if (socket_info) freeaddrinfo(socket_info);
+    socket_info = new_socket_info;  
 }
 
-bool BaseSocket::validateIpAddress(const std::string &ipAddress) {
+bool BaseSocket::validateIpAddress(const std::string &ip_address) {
     sockaddr_in sa;
-    int result = ::inet_pton(AF_INET, ipAddress.c_str(), &(sa.sin_addr));
+    int result = ::inet_pton(AF_INET, ip_address.c_str(), &(sa.sin_addr));
     return result != 0;
 }
 
@@ -156,39 +156,39 @@ bool BaseSocket::validateIpAddress(const std::string &ipAddress) {
 
 TCPSocket::TCPSocket(int flags) : BaseSocket(SOCK_STREAM, flags) {}
 
-TCPSocket::TCPSocket(int socket, addrinfo socketInfo, uint32_t portUsed, bool isBound, bool isListening, bool isConnected) : 
-    BaseSocket(socket, SOCK_STREAM, socketInfo, portUsed, isBound), isListening(isListening), isConnected(isConnected) {
+TCPSocket::TCPSocket(int socket, addrinfo socket_info, uint32_t port_used, bool is_bound, bool is_listening, bool is_connected) : 
+    BaseSocket(socket, SOCK_STREAM, socket_info, port_used, is_bound), is_listening(is_listening), is_connected(is_connected) {
 }
 
 void TCPSocket::connect(const std::string& address, uint32_t port) {
 
-    if (isListening) {
+    if (is_listening) {
         throw SocketException("Socket is already listening incoming connections on port " 
-                                + std::to_string(portUsed));
+                                + std::to_string(port_used));
     }
-    if (isConnected) {
+    if (is_connected) {
         throw SocketException("Socket is already connected to an address");
     }
     
     getAddrInfo(address, port);
 
     int result;
-    int totalIPv4Addrs = 0;
-    addrinfo * newAddrInfo;
+    int total_ipv4_addrs = 0;
+    addrinfo * new_addrinfo;
 
-    for (newAddrInfo = socketInfo; newAddrInfo; newAddrInfo = newAddrInfo->ai_next) {
+    for (new_addrinfo = socket_info; new_addrinfo; new_addrinfo = new_addrinfo->ai_next) {
 
-        if (newAddrInfo->ai_family == AF_INET) totalIPv4Addrs++;
+        if (new_addrinfo->ai_family == AF_INET) total_ipv4_addrs++;
         else continue;
 
-        result = ::connect(socketFd, newAddrInfo->ai_addr, newAddrInfo->ai_addrlen);
+        result = ::connect(socketfd, new_addrinfo->ai_addr, new_addrinfo->ai_addrlen);
         if (result == -1) continue;
 
-        isConnected = true;
+        is_connected = true;
         return;
     }
 
-    if (totalIPv4Addrs == 0) {
+    if (total_ipv4_addrs == 0) {
         throw ConnectionException("Could not find IPv4 addresses to connect to " + address + 
                                   " on port " + std::to_string(port) + ".");
     }
@@ -201,47 +201,47 @@ void TCPSocket::connect(const std::string& address, uint32_t port) {
         
 void TCPSocket::listen(uint32_t backlog) {
 
-    if (!isBound) {
+    if (!is_bound) {
         throw SocketException("Can not listen when socket is not bound to any port");
     }
-    if (isListening) {
+    if (is_listening) {
         throw SocketException("Socket is already listening incoming connections on port " 
-                                + std::to_string(portUsed));
+                                + std::to_string(port_used));
     }
 
-    int result = ::listen(socketFd, backlog);
+    int result = ::listen(socketfd, backlog);
     if (result == -1) {
-        throw ConnectionException("Could not listen on port " + std::to_string(portUsed) 
+        throw ConnectionException("Could not listen on port " + std::to_string(port_used) 
                                 + ". Error: " + std::string(strerror(errno)));
     }
 
-    isListening = true;
+    is_listening = true;
 
 }
 
 TCPSocket TCPSocket::accept() {
 
-    if (!isListening) {
+    if (!is_listening) {
         throw SocketException("Socket is not listening to incoming connections to accept one");
     }
 
-    sockaddr clientAddress;
+    sockaddr client_address;
     socklen_t sin_size = sizeof(sockaddr);
-    int clientFd = ::accept(socketFd, &clientAddress, &sin_size);
+    int clientfd = ::accept(socketfd, &client_address, &sin_size);
 
-    if (clientFd == -1) {
+    if (clientfd == -1) {
         throw ConnectionException("Error while accepting a connection. Error: " 
             + std::string(strerror(errno)));
     }
 
-    addrinfo clientInfo;
-    memset(&clientInfo, 0, sizeof(addrinfo));
+    addrinfo client_info;
+    memset(&client_info, 0, sizeof(addrinfo));
 
-    clientInfo.ai_family = AF_INET;
-    clientInfo.ai_socktype = SOCK_STREAM;
-    clientInfo.ai_addr = &clientAddress;
+    client_info.ai_family = AF_INET;
+    client_info.ai_socktype = SOCK_STREAM;
+    client_info.ai_addr = &client_address;
 
-    return TCPSocket(clientFd, clientInfo, portUsed, false, false, true);
+    return TCPSocket(clientfd, client_info, port_used, false, false, true);
 
 }
         
@@ -251,26 +251,26 @@ void TCPSocket::send(const std::string& message, int flags) {
         
 void TCPSocket::send(const uint8_t* message, int length, int flags) {
 
-    if (isListening || !isConnected) {
+    if (is_listening || !is_connected) {
         throw SocketException("Can't send message from a socket that is not connected");
     }
 
-    int bytesLeft = length;
-    int bytesSent = 0;
-    const uint8_t* cMessageLeft;
+    int bytes_left = length;
+    int bytes_sent = 0;
+    const uint8_t* message_left;
 
-    while (bytesSent < length) {
+    while (bytes_sent < length) {
 
-        cMessageLeft = message + bytesSent;
+        message_left = message + bytes_sent;
 
-        int result = ::send(socketFd, cMessageLeft, bytesLeft, flags | MSG_NOSIGNAL);
+        int result = ::send(socketfd, message_left, bytes_left, flags | MSG_NOSIGNAL);
         if (result == -1) {
             throw ConnectionException("Could not send message. Error: " 
                 + std::string(strerror(errno)));
         }
 
-        bytesLeft -= result;
-        bytesSent += result;
+        bytes_left -= result;
+        bytes_sent += result;
 
     }
 
@@ -280,29 +280,29 @@ std::string TCPSocket::recv(uint64_t maxlen, int flags) {
 
     uint8_t* message = recv(&maxlen, flags);
 
-    std::string stringMessage((char *) message);
+    std::string string_msg((char *) message);
     free(message);
-    return stringMessage;
+    return string_msg;
 
 }
 
 uint8_t* TCPSocket::recv(uint64_t* length, int flags) {
 
-    if (isListening || !isConnected) {
+    if (is_listening || !is_connected) {
         throw SocketException("Can't receive message in a socket that is not connected");
     }
 
     uint64_t maxlen = *length;
 
     uint8_t buffer[maxlen];
-    int result = ::recv(socketFd, buffer, maxlen, flags);
+    int result = ::recv(socketfd, buffer, maxlen, flags);
 
     if (result == -1) {
         throw ConnectionException("Could not receive message. Error: " 
             + std::string(strerror(errno)));
     }
     if (result ==  0) {
-        isConnected = false;
+        is_connected = false;
         throw ClosedConnection("Client closed connection.");
     }
 
@@ -318,8 +318,8 @@ void TCPSocket::close() {
 
     BaseSocket::close();
 
-    isConnected = false;
-    isListening = false;
+    is_connected = false;
+    is_listening = false;
 
 }
 
@@ -340,47 +340,47 @@ UDPSocket::UDPSocket(int flags) : BaseSocket(SOCK_DGRAM, flags) {}
 void UDPSocket::sendto(const std::string& address, uint32_t port, 
     const std::string& message, int flags) {
 
-    int msgLength = message.length();
-    int bytesLeft = msgLength;
-    int bytesSent = 0;
+    int msg_length = message.length();
+    int bytes_left = msg_length;
+    int bytes_sent = 0;
     const char* cMessage = message.c_str();
 
-    socklen_t serverLength;
-    sockaddr_in serverAddress;
+    socklen_t server_length;
+    sockaddr_in server_address;
     hostent *server;
 
     /* build the server's Internet address */
-    ::memset(&serverAddress, 0, sizeof(serverAddress));
-    serverAddress.sin_family = AF_INET;
+    ::memset(&server_address, 0, sizeof(server_address));
+    server_address.sin_family = AF_INET;
 
     if (!validateIpAddress(address)) {
         server = ::gethostbyname(address.c_str());
         if (server == NULL) {
             throw ConnectionException("No such host as " + address);
         }
-        ::memcpy(server->h_addr, &serverAddress.sin_addr.s_addr, server->h_length);
+        ::memcpy(server->h_addr, &server_address.sin_addr.s_addr, server->h_length);
 
     }
     else {
-        ::inet_pton(AF_INET, address.c_str(), &(serverAddress.sin_addr));
+        ::inet_pton(AF_INET, address.c_str(), &(server_address.sin_addr));
     }
 
-    serverAddress.sin_port = ::htons(port);
-    serverLength = sizeof(serverAddress);
+    server_address.sin_port = ::htons(port);
+    server_length = sizeof(server_address);
 
-    while (bytesSent < msgLength) {
+    while (bytes_sent < msg_length) {
 
-        const char* cMessageLeft = cMessage + bytesSent;
+        const char* message_left = cMessage + bytes_sent;
 
-        int result = ::sendto(socketFd, cMessageLeft, bytesLeft, flags | MSG_NOSIGNAL, 
-                             (sockaddr*) &serverAddress, serverLength);
+        int result = ::sendto(socketfd, message_left, bytes_left, flags | MSG_NOSIGNAL, 
+                             (sockaddr*) &server_address, server_length);
         if (result == -1) {
             throw ConnectionException("Could not send message. Error: " 
                 + std::string(strerror(errno)));
         }
 
-        bytesLeft -= result;
-        bytesSent += result;
+        bytes_left -= result;
+        bytes_sent += result;
 
     }
 
@@ -388,12 +388,12 @@ void UDPSocket::sendto(const std::string& address, uint32_t port,
 
 UDPRecv UDPSocket::recvfrom(uint64_t maxlen, int flags) {
     
-    sockaddr_in clientAddress;
-    hostent* clientInfo;
-    socklen_t clientLength = sizeof(clientAddress);
+    sockaddr_in client_address;
+    hostent* client_info;
+    socklen_t clientLength = sizeof(client_address);
 
     char buffer[maxlen+1];
-    int result = ::recvfrom(socketFd, buffer, maxlen, flags, (sockaddr *) &clientAddress, &clientLength);
+    int result = ::recvfrom(socketfd, buffer, maxlen, flags, (sockaddr *) &client_address, &clientLength);
 
     if (result == -1) {
         throw ConnectionException("Could not receive message. Error: " 
@@ -401,16 +401,16 @@ UDPRecv UDPSocket::recvfrom(uint64_t maxlen, int flags) {
     }
     buffer[result] = '\0';
 
-    clientInfo = ::gethostbyaddr((const char *)&clientAddress.sin_addr.s_addr, 
-                               sizeof(clientAddress.sin_addr.s_addr), AF_INET);
+    client_info = ::gethostbyaddr((const char *)&client_address.sin_addr.s_addr, 
+                               sizeof(client_address.sin_addr.s_addr), AF_INET);
 
-    std::string hostName(clientInfo->h_name);
-    std::string hostAddress(::inet_ntoa(clientAddress.sin_addr));
+    std::string host_name(client_info->h_name);
+    std::string host_address(::inet_ntoa(client_address.sin_addr));
     std::string message(buffer);
 
-    int port = ::ntohs(clientAddress.sin_port);
+    int port = ::ntohs(client_address.sin_port);
 
-    return UDPRecv(hostName, hostAddress, message, port);
+    return UDPRecv(host_name, host_address, message, port);
 
 
 }

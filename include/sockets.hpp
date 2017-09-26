@@ -51,11 +51,11 @@ class BaseSocket {
         /// Cria um novo objeto com informações de uma socket IPv4 já criada.
         /// @param socket       Descritor de arquivo da socket já criada.
         /// @param type         Tipo do socket (SOCK_DGRAM ou SOCK_STREAM).
-        /// @param socketInfo   Addrinfo TCP/IPv4 que já contêm endereços preenchidos.
-        /// @param portUsed     Porta na qual o socket foi vinculado.
-        /// @param isBound      Indica se o socket está vinculado a alguma porta.
-        BaseSocket(int socket, int type, addrinfo socketInfo, 
-            uint32_t portUsed, bool isBound);
+        /// @param socket_info   Addrinfo TCP/IPv4 que já contêm endereços preenchidos.
+        /// @param port_used    Porta na qual o socket foi vinculado.
+        /// @param is_bound     Indica se o socket está vinculado a alguma porta.
+        BaseSocket(int socket, int type, addrinfo socket_info, 
+            uint32_t port_used, bool is_bound);
 
         /// Destrutor. Libera memórias alocadas e encerra o socket.
         ~BaseSocket();
@@ -63,32 +63,32 @@ class BaseSocket {
         /// Encerra o socket.
         void close();
 
-        /// Preenche socketInfo com endereços possíveis de se realizar chamadas
+        /// Preenche socket_info com endereços possíveis de se realizar chamadas
         /// de bind() ou connect().
         /// @param address Endereço a ser procurado (IPv4 ou domínio).
         /// @param port Porta a ser realizada a busca.
         void getAddrInfo(const std::string address, uint32_t port);
 
         /// Verifica se a string é um endereço IP válido.
-        /// @param ipAddress std::string a ser avaliada
-        /// @return True caso ipAddress seja um enderçeo IP válido, false caso contrário.
-        bool validateIpAddress(const std::string &ipAddress);
+        /// @param ip_address std::string a ser avaliada
+        /// @return True caso ip_address seja um enderçeo IP válido, false caso contrário.
+        bool validateIpAddress(const std::string &ip_address);
 
         /// Contém as informações do socket.
         /// Socket será sempre TCP/IPv4 ou UDP/IPv4.
-        addrinfo * socketInfo;
+        addrinfo * socket_info;
         
         /// Descritor do arquivo da socket
-        int socketFd = -1;
+        int socketfd = -1;
 
         /// Porta usada pelo bind()
-        uint32_t portUsed = -1;
+        uint32_t port_used = -1;
 
         /// Se a socket está vinculada a alguma porta.
-        bool isBound = false;
+        bool is_bound = false;
 
         /// Se a socket foi fechada.
-        bool isClosed = false;
+        bool is_closed = false;
 
 };
 
@@ -157,19 +157,19 @@ class TCPSocket : public BaseSocket {
 
         /// Cria um socket TCP/IPv4 copiando as variaveis definidas nos parametros.
         /// @param socket       Descritor de arquivo da socket já criada.
-        /// @param socketInfo   Addrinfo TCP/IPv4 que já contêm endereços preenchidos.
-        /// @param portUsed     Porta na qual o socket foi vinculado.
-        /// @param isBound      Indica se o socket está vinculado a alguma porta.
-        /// @param isListening  Indica se o socket já está ouvindo em alguma porta.
-        /// @param isConnected  Indica se o socket está conectado a algum servidor.
-        TCPSocket(int socket, addrinfo socketInfo, uint32_t portUsed, 
-            bool isBound, bool isListening, bool isConnected);
+        /// @param socket_info   Addrinfo TCP/IPv4 que já contêm endereços preenchidos.
+        /// @param port_used    Porta na qual o socket foi vinculado.
+        /// @param is_bound      Indica se o socket está vinculado a alguma porta.
+        /// @param is_listening  Indica se o socket já está ouvindo em alguma porta.
+        /// @param is_connected  Indica se o socket está conectado a algum servidor.
+        TCPSocket(int socket, addrinfo socket_info, uint32_t port_used, 
+            bool is_bound, bool is_listening, bool is_connected);
         
         /// Se o socket está conectada a algum endereço
-        bool isConnected = false;
+        bool is_connected = false;
 
         /// Se o socket está ouvindo conexões
-        bool isListening = false;
+        bool is_listening = false;
 
 };
 
