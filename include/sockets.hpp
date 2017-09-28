@@ -14,6 +14,7 @@
 #include <stdexcept>
 #include <cstring>
 #include <string>
+#include <memory>
 
 namespace Socket {
  
@@ -110,6 +111,16 @@ class TCPSocket : public BaseSocket {
         /// Cria um socket TCP/IPv4.
         /// @param flags Flags opcionais para a chamada de getaddrinfo()
         TCPSocket(int flags = 0);
+
+        /// Cria um socket TCP/IPv4 copiando as variaveis definidas nos parametros.
+        /// @param socket       Descritor de arquivo da socket já criada.
+        /// @param socket_info   Addrinfo TCP/IPv4 que já contêm endereços preenchidos.
+        /// @param port_used    Porta na qual o socket foi vinculado.
+        /// @param is_bound      Indica se o socket está vinculado a alguma porta.
+        /// @param is_listening  Indica se o socket já está ouvindo em alguma porta.
+        /// @param is_connected  Indica se o socket está conectado a algum servidor.
+        TCPSocket(int socket, addrinfo socket_info, uint32_t port_used, 
+            bool is_bound, bool is_listening, bool is_connected);
         
         /// Conecta a socket a algum endereço.
         /// @param address std::string contendo o endereço IP ou domínio a ser conectado.
@@ -122,7 +133,7 @@ class TCPSocket : public BaseSocket {
         
         /// Aceita uma conexão pendente após chamar a função listen().
         /// @return Objeto TCPSocket conectado ao cliente aceito.
-        TCPSocket accept(); 
+        std::shared_ptr<TCPSocket> accept(); 
         
         /// Envia uma quantidade específica de bytes para o endereço conectado.
         /// @param message Endereço inicial da mensagem a ser enviada.
@@ -154,16 +165,6 @@ class TCPSocket : public BaseSocket {
         void close();
 
     private:
-
-        /// Cria um socket TCP/IPv4 copiando as variaveis definidas nos parametros.
-        /// @param socket       Descritor de arquivo da socket já criada.
-        /// @param socket_info   Addrinfo TCP/IPv4 que já contêm endereços preenchidos.
-        /// @param port_used    Porta na qual o socket foi vinculado.
-        /// @param is_bound      Indica se o socket está vinculado a alguma porta.
-        /// @param is_listening  Indica se o socket já está ouvindo em alguma porta.
-        /// @param is_connected  Indica se o socket está conectado a algum servidor.
-        TCPSocket(int socket, addrinfo socket_info, uint32_t port_used, 
-            bool is_bound, bool is_listening, bool is_connected);
         
         /// Se o socket está conectada a algum endereço
         bool is_connected = false;

@@ -10,16 +10,16 @@ int main() {
     try {
         sv1.bind(1234);
         sv1.listen();
-        TCPSocket client = sv1.accept();
+        std::shared_ptr<TCPSocket> client = sv1.accept();
         printf("Cliente conectado\n");
         try {
             for (;;) {
                 int input;
                 string legal;
                 cin >> input >> legal;
-                if (input == 1) std::cout << client.recv(256) << std::endl;
+                if (input == 1) std::cout << client->recv(256) << std::endl;
                 else {
-                    client.send(legal + "\n");
+                    client->send(legal + "\n");
                 }
             }
         }

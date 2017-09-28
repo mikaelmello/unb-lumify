@@ -219,7 +219,7 @@ void TCPSocket::listen(uint32_t backlog) {
 
 }
 
-TCPSocket TCPSocket::accept() {
+std::shared_ptr<TCPSocket> TCPSocket::accept() {
 
     if (!is_listening) {
         throw SocketException("Socket is not listening to incoming connections to accept one");
@@ -241,7 +241,7 @@ TCPSocket TCPSocket::accept() {
     client_info.ai_socktype = SOCK_STREAM;
     client_info.ai_addr = &client_address;
 
-    return TCPSocket(clientfd, client_info, port_used, false, false, true);
+    return std::make_shared<TCPSocket>(clientfd, client_info, port_used, false, false, true);
 
 }
         
