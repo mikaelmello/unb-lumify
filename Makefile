@@ -18,7 +18,7 @@ clean: clean-custom
 	${RM} $(OBJ) $(BIN)
 
 $(BIN): $(OBJ)
-	$(CPP) $(OBJ) -o $(BIN) $(LIBS)
+	$(CPP) $(OBJ) -pthread -o $(BIN) $(LIBS)
 
 obj/%.o: src/%.cpp
 	$(CPP) -c $< -o $@ $(CXXFLAGS)
