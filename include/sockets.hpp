@@ -41,6 +41,10 @@ class BaseSocket {
         /// Vincula o socket a alguma porta.
         /// @param port Número da porta que o socket será vinculado.
         void bind(uint32_t port);
+        
+        std::string get_ip_address() {
+            return this->ip_address_str;
+        }
 
     protected:
 
@@ -55,7 +59,7 @@ class BaseSocket {
         /// @param socket_info   Addrinfo TCP/IPv4 que já contêm endereços preenchidos.
         /// @param port_used    Porta na qual o socket foi vinculado.
         /// @param is_bound     Indica se o socket está vinculado a alguma porta.
-        BaseSocket(int socket, int type, addrinfo socket_info, 
+        BaseSocket(int socket, int type, addrinfo socket_info, const std::string& client_ip,
             uint32_t port_used, bool is_bound);
 
         /// Destrutor. Libera memórias alocadas e encerra o socket.
@@ -91,6 +95,8 @@ class BaseSocket {
         /// Se a socket foi fechada.
         bool is_closed = false;
 
+        std::string ip_address_str;
+
 };
 
 
@@ -119,7 +125,7 @@ class TCPSocket : public BaseSocket {
         /// @param is_bound      Indica se o socket está vinculado a alguma porta.
         /// @param is_listening  Indica se o socket já está ouvindo em alguma porta.
         /// @param is_connected  Indica se o socket está conectado a algum servidor.
-        TCPSocket(int socket, addrinfo socket_info, uint32_t port_used, 
+        TCPSocket(int socket, addrinfo socket_info, uint32_t port_used, const std::string& client_ip,
             bool is_bound, bool is_listening, bool is_connected);
         
         /// Conecta a socket a algum endereço.

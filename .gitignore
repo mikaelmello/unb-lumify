@@ -2,6 +2,9 @@
 obj/
 *.o
 
+# Web server base
+/src/server.c
+
 # Main executable file
 /lumify
 

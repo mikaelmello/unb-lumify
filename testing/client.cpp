@@ -10,7 +10,7 @@ int main() {
     TCPSocket cl1(0);
 
     try {
-        cl1.connect("localhost", 1234);
+        cl1.connect("localhost", 8080);
         for (;;) {
             int input;
             string legal;

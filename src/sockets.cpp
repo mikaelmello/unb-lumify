@@ -26,8 +26,8 @@ BaseSocket::BaseSocket(int type, int flags) {
     setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 }
 
-BaseSocket::BaseSocket(int socket, int type, addrinfo sInfo, uint32_t port, bool is_bound) :
-    socketfd(socket), port_used(port), is_bound(is_bound) {
+BaseSocket::BaseSocket(int socket, int type, addrinfo sInfo, const std::string& client_ip, uint32_t port, bool is_bound) :
+    socketfd(socket), ip_address_str(client_ip), port_used(port), is_bound(is_bound) {
 
     // Verifica que o endereço é IPv4 e do mesmo tipo definido pelo parâmetro
     if (sInfo.ai_family != AF_INET || sInfo.ai_socktype != type) {
@@ -156,8 +156,8 @@ bool BaseSocket::validateIpAddress(const std::string &ip_address) {
 
 TCPSocket::TCPSocket(int flags) : BaseSocket(SOCK_STREAM, flags) {}
 
-TCPSocket::TCPSocket(int socket, addrinfo socket_info, uint32_t port_used, bool is_bound, bool is_listening, bool is_connected) : 
-    BaseSocket(socket, SOCK_STREAM, socket_info, port_used, is_bound), is_listening(is_listening), is_connected(is_connected) {
+TCPSocket::TCPSocket(int socket, addrinfo socket_info, uint32_t port_used, const std::string& client_ip, bool is_bound, bool is_listening, bool is_connected) : 
+    BaseSocket(socket, SOCK_STREAM, socket_info, client_ip, port_used, is_bound), is_listening(is_listening), is_connected(is_connected) {
 }
 
 void TCPSocket::connect(const std::string& address, uint32_t port) {
@@ -241,7 +241,10 @@ std::shared_ptr<TCPSocket> TCPSocket::accept() {
     client_info.ai_socktype = SOCK_STREAM;
     client_info.ai_addr = &client_address;
 
-    return std::make_shared<TCPSocket>(clientfd, client_info, port_used, false, false, true);
+    sockaddr_in* client_address_in = (sockaddr_in*)&client_address;
+    std::string client_ip = std::string(::inet_ntoa(client_address_in->sin_addr));
+
+    return std::make_shared<TCPSocket>(clientfd, client_info, port_used, client_ip, false, false, true);
 
 }
         
