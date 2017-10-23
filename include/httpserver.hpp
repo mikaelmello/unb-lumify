@@ -15,13 +15,21 @@
 
 namespace HTTP {
 
+struct RequestError {
+    RequestError(uint16_t code) : code(code) {}
+    uint16_t code;
+};
+
 class Request {
     public:
         std::string method; 
-        std::string uri;
+        std::string file_path;
+        std::string absolute_path;
         std::string http_version;
 
+        std::vector<std::string> uri;
         std::vector<std::pair<std::string, std::string>> request_headers;
+        std::vector<std::pair<std::string, std::string>> uri_parameters;
 };
 
 class Server {
@@ -38,13 +46,29 @@ class Server {
 
         void accept();
 
-        void handle(std::shared_ptr<Socket::TCPSocket> client_socket);
+        void handle_request(std::shared_ptr<Socket::TCPSocket> client_socket);
 
-        void response(HTTP::Request req);
+        void handle_response(std::shared_ptr<Socket::TCPSocket> client_socket, HTTP::Request client_request);
+
+        void transfer(std::shared_ptr<Socket::TCPSocket> client_socket, HTTP::Request client_request);
+
+        void interpret(std::shared_ptr<Socket::TCPSocket> client_socket, HTTP::Request client_request);
+
+        void respond(std::shared_ptr<Socket::TCPSocket> client_socket, uint16_t code, 
+                     const std::vector<std::pair<std::string, std::string>>& headers, 
+                     const std::string& body);
+
+        void error(std::shared_ptr<Socket::TCPSocket> client_socket, uint16_t code);
+
+        std::string reason(uint16_t code);
+
+        std::string url_decode(const std::string& url);
 
         std::shared_ptr<spdlog::logger> log;
 
         Socket::TCPSocket server_socket;
+
+        std::string root_path;
 
 };
 

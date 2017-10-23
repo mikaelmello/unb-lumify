@@ -7,3 +7,4 @@
 
 ### HTTP
 - [ ] Melhorar gerenciamento de erros em Server::handle()
+- [ ] Ao implementar Server::stop() usar Mutex na condição de parada do loop de Server::accept()

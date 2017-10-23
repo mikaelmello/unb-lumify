@@ -33,11 +33,11 @@ void Server::start(const std::string& path, uint32_t port) {
         throw std::runtime_error("Not allowed to execute on " + path);
     }
 
-    std::string root_path(root);
+    this->root_path = root;
     free(root);
 
     try {
-        log->info("Using " + root_path + " as path.");
+        log->info("Using " + this->root_path + " as path.");
         this->server_socket.bind(port);
         this->server_socket.listen();
 
@@ -60,15 +60,13 @@ void Server::start(const std::string& path, uint32_t port) {
 void Server::accept() {
     while(1) {
         std::shared_ptr<Socket::TCPSocket> client_socket = this->server_socket.accept();
-        std::thread t2([this, client_socket] { this->handle(client_socket); });
+        std::thread t2([this, client_socket] { this->handle_request(client_socket); });
         t2.detach();
     }
 }
 
-void Server::handle(std::shared_ptr<Socket::TCPSocket> client_socket) {
-    log->info("Connection established with IP " + client_socket->get_ip_address());
+void Server::handle_request(std::shared_ptr<Socket::TCPSocket> client_socket) {
     try {
-    while(1) {
         std::string request_str;
         HTTP::Request client_request;
 
@@ -79,30 +77,145 @@ void Server::handle(std::shared_ptr<Socket::TCPSocket> client_socket) {
         std::vector<std::string> request_lines = Helpers::split(request_str, "\r\n");
         std::vector<std::string> request_line = Helpers::split(request_lines[0], ' ');
 
-        client_request.method       = request_line[0];
-        client_request.uri          = request_line[1];
-        client_request.http_version = request_line[2];
+        client_request.method        = request_line[0];
+        client_request.uri           = Helpers::split(request_line[1], '?');
+        client_request.file_path     = client_request.uri[0];
+        client_request.absolute_path = this->root_path + client_request.uri[0];
+        client_request.http_version  = request_line[2];
+
+        if (client_request.uri.size() > 1) {
+            std::vector<std::string> parameters = Helpers::split(client_request.uri[1], '&');
+            for (auto prmtr : parameters) {
+                std::vector<std::string> key_value = Helpers::split(prmtr, '=');
+
+                std::pair<std::string, std::string> single_parameter(key_value[0], key_value[1]);
+
+                client_request.uri_parameters.push_back(single_parameter);
+            }
+        }
 
         for (int i = 1; i < request_lines.size(); i++) {
             std::vector<std::string> header_vector = Helpers::split(request_lines[i], ':');
+            if (header_vector.size() != 2) continue;
             std::pair<std::string, std::string> header;
             header.first  = header_vector[0];
             header.second = header_vector[1];
             client_request.request_headers.push_back(header);
         }
 
-        if (client_request.method != "GET") log->error("Not GET");
-        else {
-            response(client_request);
+        try {
+            log->info(request_lines[0] + " from " + client_socket->get_ip_address());
+            handle_response(client_socket, client_request);            
+        }
+        catch (const RequestError& e) {
+            error(client_socket, e.code);
         }
 
-    }
     }
     catch (std::exception& e) {
         log->error(e.what());
     }
 }
 
-void Server::response(Request req) {
-    
+void Server::handle_response(std::shared_ptr<Socket::TCPSocket> client_socket, Request client_request) {
+    std::string file_path = client_request.file_path;
+    std::string absolute_path = client_request.absolute_path;
+    std::string file_extension = file_path.substr(file_path.find_last_of(".") + 1);
+
+    if (client_request.method != "GET") throw RequestError(405);
+    if (file_path[0] != '/') throw RequestError(501);
+    if (file_path.find('"') != file_path.npos) throw RequestError(400);
+
+    if (file_path == "/") {
+        file_path = "/index.php";
+        file_extension = "php";
+    }
+    // ensure path is readable
+    if (access(absolute_path.c_str(), R_OK) == -1) throw RequestError(404);
+
+    if (file_extension == "php") interpret(client_socket, client_request);
+    else transfer(client_socket, client_request);
+
+}
+
+void Server::transfer(std::shared_ptr<Socket::TCPSocket> client_socket, Request client_request) {
+
+}
+
+void Server::interpret(std::shared_ptr<Socket::TCPSocket> client_socket, Request client_request) {
+
+}
+
+void Server::respond(std::shared_ptr<Socket::TCPSocket> client_socket, uint16_t code, 
+                     const std::vector<std::pair<std::string, std::string>>& headers, 
+                     const std::string& body) {
+
+    std::string response = "HTTP/1.1 " + std::to_string(code) + " " + reason(code) + "\r\n";
+    for (auto header : headers) {
+        response += header.first + ": " + header.second + "\r\n";
+    }
+    response += "Content-Length: " + std::to_string(body.size()) + "\r\n";
+    response += "Connection: close\r\n";;
+    response += "\r\n";
+    response += body;
+
+    if (code < 300) log->info("HTTP/1.1 " + std::to_string(code) + " " + reason(code));
+    else            log->error("HTTP/1.1 " + std::to_string(code) + " " + reason(code));
+    client_socket->send(response);
+
+}
+
+void Server::error(std::shared_ptr<Socket::TCPSocket> client_socket, uint16_t code) {
+
+    std::vector<std::pair<std::string, std::string>> headers;
+    std::pair<std::string, std::string> content_type("Content-Type", "text/html");
+    headers.push_back(content_type);
+
+    std::string body = "<html><head><title>"       + std::to_string(code) + " " + reason(code) + 
+                       "</title></head><body><h1>" + std::to_string(code) + " " + reason(code) +
+                       "</h1></body></html>";
+
+    respond(client_socket, code, headers, body);
+}
+
+std::string Server::reason(uint16_t code) {
+    switch (code)
+    {
+        case 200: return "OK";
+        case 301: return "Moved Permanently";
+        case 400: return "Bad Request";
+        case 403: return "Forbidden";
+        case 404: return "Not Found";
+        case 405: return "Method Not Allowed";
+        case 414: return "Request-URI Too Long";
+        case 418: return "I'm a teapot";
+        case 500: return "Internal Server Error";
+        case 501: return "Not Implemented";
+        case 505: return "HTTP Version Not Supported";
+        default:  return "None";
+    }
+}
+
+
+std::string url_decode(const std::string& url) {
+
+    std::string decoded;
+
+    // Decodificando octetos codificados por %
+    // https://www.ietf.org/rfc/rfc3986.txt
+    for (int i = 0, n = url.size(); i < n; i++) {
+        if (url[i] == '%' && i < n - 2) {
+            std::string octet = url.substr(i + 1, 2);
+            decoded += (char) std::stol(octet, NULL, 16);
+            i += 2;
+        }
+        else if (url[i] == '+') {
+            decoded += ' ';
+        }
+        else {
+            decoded += url[i];
+        }
+    }
+
+    return decoded;
 }
