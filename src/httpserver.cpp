@@ -10,7 +10,7 @@ using namespace HTTP;
 
 Server::Server() {
     try {
-        // creates logger
+        // inicializa o logger
         log = spdlog::stdout_color_mt("httpserver");
     }
     catch (const spdlog::spdlog_ex& ex) {
@@ -21,14 +21,14 @@ Server::Server() {
 
 void Server::start(const std::string& path, uint32_t port) {
 
-    // path to server's root
+    // Path absoluto da root do servidor
     char* root = ::realpath(path.c_str(), NULL);
     if (root == NULL) {
         log->error("Path " + path + " not found");
         throw std::runtime_error("Path " + path + " not found");
     };
 
-    // ensure root is executable
+    // Garante que a root é executável
     if (::access(root, X_OK) == -1) {
         log->error("Not allowed to execute on " + path);
         throw std::runtime_error("Not allowed to execute on " + path);
@@ -37,14 +37,17 @@ void Server::start(const std::string& path, uint32_t port) {
     this->root_path = root;
     free(root);
 
+
     try {
+        // Inicializa o servidor
         log->info("Using " + this->root_path + " as path.");
         this->server_socket.bind(port);
         this->server_socket.listen();
 
         log->info("Listening on Port " + std::to_string(port));
 
-        //std::thread t1(&Socket::TCPSocket::accept, &this->server_socket);
+        // Aceita as conexões em um thread separado e 
+        // volta pra função que chamou start()
         std::thread t1([this] { this->accept(); });
         t1.detach();
 
@@ -54,7 +57,7 @@ void Server::start(const std::string& path, uint32_t port) {
         log->error("Failed server start. \
                         Description: " + std::string(er.what()));
 
-        throw std::runtime_error("Deu ruim no bind ou listen");
+        throw std::runtime_error(er.what());
     }
 }
 
@@ -78,10 +81,12 @@ void Server::handle_request(std::shared_ptr<Socket::TCPSocket> client_socket) {
         std::vector<std::string> request_lines = Helpers::split(request_str, "\r\n");
         std::vector<std::string> request_line = Helpers::split(request_lines[0], ' ');
 
+        request_line[1] = url_decode(request_line[1]);
+
         client_request.method        = request_line[0];
         client_request.uri           = Helpers::split(request_line[1], '?');
-        client_request.file_path     = client_request.uri[0];
-        client_request.absolute_path = this->root_path + client_request.uri[0];
+        client_request.file_path     = (client_request.uri[0] == "/" ? "/index.html" : client_request.uri[0]);
+        client_request.absolute_path = this->root_path + client_request.file_path;
         client_request.http_version  = request_line[2];
 
         if (client_request.uri.size() > 1) {
@@ -127,15 +132,9 @@ void Server::handle_response(std::shared_ptr<Socket::TCPSocket> client_socket, R
     if (client_request.method != "GET") throw RequestError(405);
     if (file_path[0] != '/') throw RequestError(501);
     if (file_path.find('"') != file_path.npos) throw RequestError(400);
-
-    if (file_path == "/") {
-        file_path = "/index.php";
-        file_extension = "php";
-    }
-    // ensure path is readable
     if (access(absolute_path.c_str(), R_OK) == -1) throw RequestError(404);
 
-    if (file_extension == "php") interpret(client_socket, client_request);
+    if (file_type == "text/x-php") interpret(client_socket, client_request);
     else transfer(client_socket, client_request, file_type);
 
 }
