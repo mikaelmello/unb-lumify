@@ -1,6 +1,7 @@
 #include "httpserver.hpp"
 #include "helpers.hpp"
 #include <iostream>
+#include <fstream>
 #include <unistd.h>
 #include <thread>
 #include <chrono>
@@ -121,6 +122,7 @@ void Server::handle_response(std::shared_ptr<Socket::TCPSocket> client_socket, R
     std::string file_path = client_request.file_path;
     std::string absolute_path = client_request.absolute_path;
     std::string file_extension = file_path.substr(file_path.find_last_of(".") + 1);
+    std::string file_type = lookup_type(file_extension);
 
     if (client_request.method != "GET") throw RequestError(405);
     if (file_path[0] != '/') throw RequestError(501);
@@ -134,12 +136,31 @@ void Server::handle_response(std::shared_ptr<Socket::TCPSocket> client_socket, R
     if (access(absolute_path.c_str(), R_OK) == -1) throw RequestError(404);
 
     if (file_extension == "php") interpret(client_socket, client_request);
-    else transfer(client_socket, client_request);
+    else transfer(client_socket, client_request, file_type);
 
 }
 
-void Server::transfer(std::shared_ptr<Socket::TCPSocket> client_socket, Request client_request) {
+void Server::transfer(std::shared_ptr<Socket::TCPSocket> client_socket, 
+                      Request client_request, const std::string& file_type) {
 
+    std::ifstream file_requested;
+
+    file_requested.open(client_request.absolute_path, std::ifstream::ate | std::ifstream::binary);
+    int file_size = file_requested.tellg();
+
+    file_requested.close();
+    file_requested.open(client_request.absolute_path, std::ifstream::in | std::ifstream::binary);
+
+    uint8_t buffer[file_size];
+    file_requested.read((char *) buffer, file_size);
+    if (!file_requested) throw RequestError(500);
+
+    std::vector<std::pair<std::string, std::string>> headers;
+    if (file_type != "") {
+        headers.push_back(std::pair<std::string, std::string>("Content-Type", file_type));
+    }
+
+    respond(client_socket, 200, headers, buffer, file_size);
 }
 
 void Server::interpret(std::shared_ptr<Socket::TCPSocket> client_socket, Request client_request) {
@@ -148,20 +169,20 @@ void Server::interpret(std::shared_ptr<Socket::TCPSocket> client_socket, Request
 
 void Server::respond(std::shared_ptr<Socket::TCPSocket> client_socket, uint16_t code, 
                      const std::vector<std::pair<std::string, std::string>>& headers, 
-                     const std::string& body) {
+                     uint8_t * body, uint32_t length) {
 
     std::string response = "HTTP/1.1 " + std::to_string(code) + " " + reason(code) + "\r\n";
     for (auto header : headers) {
         response += header.first + ": " + header.second + "\r\n";
     }
-    response += "Content-Length: " + std::to_string(body.size()) + "\r\n";
-    response += "Connection: close\r\n";;
+    response += "Content-Length: " + std::to_string(length) + "\r\n";
+    response += "Connection: close\r\n";
     response += "\r\n";
-    response += body;
 
     if (code < 300) log->info("HTTP/1.1 " + std::to_string(code) + " " + reason(code));
     else            log->error("HTTP/1.1 " + std::to_string(code) + " " + reason(code));
     client_socket->send(response);
+    client_socket->send(body, length);
 
 }
 
@@ -175,7 +196,7 @@ void Server::error(std::shared_ptr<Socket::TCPSocket> client_socket, uint16_t co
                        "</title></head><body><h1>" + std::to_string(code) + " " + reason(code) +
                        "</h1></body></html>";
 
-    respond(client_socket, code, headers, body);
+    respond(client_socket, code, headers, (uint8_t *) body.c_str(), body.length());
 }
 
 std::string Server::reason(uint16_t code) {
@@ -197,7 +218,7 @@ std::string Server::reason(uint16_t code) {
 }
 
 
-std::string url_decode(const std::string& url) {
+std::string Server::url_decode(const std::string& url) {
 
     std::string decoded;
 
@@ -218,4 +239,17 @@ std::string url_decode(const std::string& url) {
     }
 
     return decoded;
+}
+
+std::string Server::lookup_type(const std::string& extension) {
+    if (extension == "css")  return "text/css";
+    if (extension == "html") return "text/html";       
+    if (extension == "gif")  return "image/gif";       
+    if (extension == "ico")  return "image/x-icon";    
+    if (extension == "jpg")  return "image/jpeg";      
+    if (extension == "js")   return "text/javascript"; 
+    if (extension == "php")  return "text/x-php";      
+    if (extension == "png")  return "image/png";       
+
+    return "";
 }
