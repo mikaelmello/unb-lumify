@@ -41,6 +41,10 @@ class BaseSocket {
         /// Vincula o socket a alguma porta.
         /// @param port Número da porta que o socket será vinculado.
         void bind(uint32_t port);
+
+        /// Permite configurar tempo limite para funções de input/output
+        /// como recv() e send().
+        void set_timeout(uint16_t seconds);
         
         std::string get_ip_address() {
             return this->ip_address_str;

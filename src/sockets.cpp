@@ -103,6 +103,13 @@ void BaseSocket::bind(uint32_t port) {
             + ". Error: " + std::string(strerror(errno)));
 }
 
+void BaseSocket::set_timeout(uint16_t seconds) {
+    struct timeval tv;
+    tv.tv_sec = seconds; 
+    tv.tv_usec = 0;  // Not init'ing this can cause strange errors
+    setsockopt(this->socketfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv,sizeof(struct timeval));
+}
+
 void BaseSocket::close() {
 
     // Se a socket não foi setada ou já foi fechada, nada acontece.
