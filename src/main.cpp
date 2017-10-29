@@ -18,7 +18,7 @@ int main() {
 
     while (!signaled);
 
-    //sv1.stop();
+    sv1.stop();
     
 }
 

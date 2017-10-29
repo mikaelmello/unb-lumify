@@ -8,7 +8,7 @@
 
 using namespace HTTP;
 
-Server::Server() {
+Server::Server() : is_finished(false), threads_qty(0) {
     try {
         // inicializa o logger
         log = spdlog::stdout_color_mt("httpserver");
@@ -34,7 +34,9 @@ void Server::start(const std::string& path, uint32_t port) {
         throw std::runtime_error("Not allowed to execute on " + path);
     }
 
+    // Coloca o caminho da root na variável membro da classe
     this->root_path = root;
+    this->port = port;
     free(root);
 
 
@@ -50,6 +52,7 @@ void Server::start(const std::string& path, uint32_t port) {
         // volta pra função que chamou start()
         std::thread t1([this] { this->accept(); });
         t1.detach();
+        this->threads_qty++;
 
     }
     catch (Socket::ConnectionException& er){
@@ -61,12 +64,38 @@ void Server::start(const std::string& path, uint32_t port) {
     }
 }
 
-void Server::accept() {
-    while(1) {
-        std::shared_ptr<Socket::TCPSocket> client_socket = this->server_socket.accept();
-        std::thread t2([this, client_socket] { this->handle_request(client_socket); });
-        t2.detach();
+void Server::stop() {
+    log->warn("Initiating termination of HTTP Server");
+    this->is_finished = true;
+    log->warn("Closing server socket");
+    this->server_socket.close();
+    log->warn("Terminating accept() of new connections");
+    Socket::TCPSocket a;
+    a.connect("localhost", this->port);
+
+    log->warn("Waiting for all threads to finish");
+    while(this->threads_qty > 0) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
     }
+    log->warn("Exit.");
+}
+
+void Server::accept() {
+    while(!this->is_finished) {
+        try {
+            std::shared_ptr<Socket::TCPSocket> client_socket = this->server_socket.accept();
+            
+            uint16_t client_timeout = (this->is_finished ? 1 : 10);
+            client_socket->set_timeout(client_timeout);
+            
+            std::thread t2([this, client_socket] { this->handle_request(client_socket); });
+            t2.detach();
+            this->threads_qty++;
+        }
+        catch (const Socket::ConnectionException& e) {}
+    }
+    log->warn("Thread with accept() terminated.");
+    this->threads_qty--;
 }
 
 void Server::handle_request(std::shared_ptr<Socket::TCPSocket> client_socket) {
@@ -119,8 +148,12 @@ void Server::handle_request(std::shared_ptr<Socket::TCPSocket> client_socket) {
 
     }
     catch (std::exception& e) {
-        log->error(e.what());
+        // quick hack to not log timeout error of our own last connected socket
+        if (!this->is_finished) {
+            log->error(e.what());
+        }
     }
+    this->threads_qty--;
 }
 
 void Server::handle_response(std::shared_ptr<Socket::TCPSocket> client_socket, Request client_request) {

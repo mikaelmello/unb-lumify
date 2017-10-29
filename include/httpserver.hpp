@@ -7,6 +7,7 @@
 
 #include <string>
 #include <utility>
+#include <atomic>
 #include "spdlog/spdlog.h"
 
 #include "sockets.hpp"
@@ -125,6 +126,12 @@ class Server {
         /// @return String contendo o MIME type.
         std::string lookup_type(const std::string& extension);
 
+        /// Booleano que sinaliza o fim da execução do servidor.
+        std::atomic<bool> is_finished;
+
+        /// Contabiliza o número de threads ativos criados por esta classe.
+        std::atomic<int> threads_qty;
+
         /// Logger
         std::shared_ptr<spdlog::logger> log;
 
@@ -133,6 +140,9 @@ class Server {
 
         /// Caminho raiz do servidor.
         std::string root_path;
+
+        /// Porta usada pelo servidor.
+        uint32_t port;;
 
 };
 
