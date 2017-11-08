@@ -150,9 +150,11 @@ void Server::handle_request(std::shared_ptr<Socket::TCPSocket> client_socket) {
     catch (std::exception& e) {
         // quick hack to not log timeout error of our own last connected socket
         if (!this->is_finished) {
+            log->error("Error with user " + client_socket->get_ip_address() + ":");
             log->error(e.what());
         }
     }
+    client_socket->close();
     this->threads_qty--;
 }
 

@@ -1,5 +1,7 @@
 #include <iostream>
 #include <signal.h>
+#include <chrono>
+#include <thread>
 #include "httpserver.hpp"
 
 void handler(int param);
@@ -16,7 +18,9 @@ int main() {
     HTTP::Server sv1;
     sv1.start("www");
 
-    while (!signaled);
+    while (!signaled) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
 
     sv1.stop();
     
