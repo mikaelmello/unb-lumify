@@ -65,14 +65,21 @@ void Server::start(const std::string& path, uint32_t port) {
 }
 
 void Server::stop() {
+    // Seta a variável lida por accept() em seu loop
     log->warn("Initiating termination of HTTP Server");
     this->is_finished = true;
+
+    // Encerra o socket do servidor
     log->warn("Closing server socket");
     this->server_socket.close();
+
+    // Inicia uma conexão com o próprio servidor para finalizar
+    // a chamada blocante de server_socket.accept() em accept()
     log->warn("Terminating accept() of new connections");
     Socket::TCPSocket a;
     a.connect("localhost", this->port);
 
+    // Esperando todos os threads do servidor finalizarem
     log->warn("Waiting for all threads to finish");
     while(this->threads_qty > 0) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -81,13 +88,21 @@ void Server::stop() {
 }
 
 void Server::accept() {
+    // Aceita conexões indefinidamente enquanto o fim não é sinalizado
     while(!this->is_finished) {
         try {
+            // Cria um ponteiro compartilhado que é uma socket do cliente
+            // retornada por server_socket.accept();
             std::shared_ptr<Socket::TCPSocket> client_socket = this->server_socket.accept();
             
+            // Define um timeout para receber dados do cliente.
+            // Se o servidor já tiver sido finalizado, define-se
+            // 1 segundo, 10 caso contrário.
             uint16_t client_timeout = (this->is_finished ? 1 : 10);
             client_socket->set_timeout(client_timeout);
             
+            // Inicia um thread para lidar com o request do cliente e então
+            // separa ele do thread atual, de modo a aceitar mais conexõs
             std::thread t2([this, client_socket] { this->handle_request(client_socket); });
             t2.detach();
             this->threads_qty++;
@@ -103,10 +118,13 @@ void Server::handle_request(std::shared_ptr<Socket::TCPSocket> client_socket) {
         std::string request_str;
         HTTP::Request client_request;
 
+        // Recebe dados até que seja encontrado CRLFCRLF (fim de um request).
         while (request_str.find("\r\n\r\n") == std::string::npos) {
             request_str += client_socket->recv(4096);
         }
 
+        // As próximas 30 linhas preenchem um struct Request de acordo
+        // com a string recebida do cliente
         std::vector<std::string> request_lines = Helpers::split(request_str, "\r\n");
         std::vector<std::string> request_line = Helpers::split(request_lines[0], ' ');
 
@@ -138,6 +156,7 @@ void Server::handle_request(std::shared_ptr<Socket::TCPSocket> client_socket) {
             client_request.request_headers.push_back(header);
         }
 
+        // Resolve como responder ao request do cliente.
         try {
             log->info(request_lines[0] + " from " + client_socket->get_ip_address());
             handle_response(client_socket, client_request);            
@@ -164,11 +183,19 @@ void Server::handle_response(std::shared_ptr<Socket::TCPSocket> client_socket, R
     std::string file_extension = file_path.substr(file_path.find_last_of(".") + 1);
     std::string file_type = lookup_type(file_extension);
 
+    // Único método suportado é o GET
     if (client_request.method != "GET") throw RequestError(405);
+
+    // Erro de caminho inválido
     if (file_path[0] != '/') throw RequestError(501);
+
+    // Recusa caminhos com aspas em seus caracteres
     if (file_path.find('"') != file_path.npos) throw RequestError(400);
+
+    // Caso não seja possível acessar o arquivo.
     if (access(absolute_path.c_str(), R_OK) == -1) throw RequestError(404);
 
+    // Se o arquivo for .php, ele é interpretado antes de transferido.
     if (file_type == "text/x-php") interpret(client_socket, client_request);
     else transfer(client_socket, client_request, file_type);
 
@@ -179,16 +206,21 @@ void Server::transfer(std::shared_ptr<Socket::TCPSocket> client_socket,
 
     std::ifstream file_requested;
 
+    // Abre o arquivo, verifica o tamanho dele e fecha.
     file_requested.open(client_request.absolute_path, std::ifstream::ate | std::ifstream::binary);
     int file_size = file_requested.tellg();
-
     file_requested.close();
+
+    // Abre novamente o arquivo, inicia um buffer com o tamanho necessário na memória
     file_requested.open(client_request.absolute_path, std::ifstream::in | std::ifstream::binary);
 
     uint8_t buffer[file_size];
+
     file_requested.read((char *) buffer, file_size);
+    // Se um erro acontecer, um erro é lançado.
     if (!file_requested) throw RequestError(500);
 
+    // Inicializa os headers da resposta e envia a resposta.
     std::vector<std::pair<std::string, std::string>> headers;
     if (file_type != "") {
         headers.push_back(std::pair<std::string, std::string>("Content-Type", file_type));
@@ -198,13 +230,14 @@ void Server::transfer(std::shared_ptr<Socket::TCPSocket> client_socket,
 }
 
 void Server::interpret(std::shared_ptr<Socket::TCPSocket> client_socket, Request client_request) {
-
+    // TODO
 }
 
 void Server::respond(std::shared_ptr<Socket::TCPSocket> client_socket, uint16_t code, 
                      const std::vector<std::pair<std::string, std::string>>& headers, 
                      uint8_t * body, uint32_t length) {
 
+    // Simples construção de uma resposta HTTP.
     std::string response = "HTTP/1.1 " + std::to_string(code) + " " + reason(code) + "\r\n";
     for (auto header : headers) {
         response += header.first + ": " + header.second + "\r\n";
@@ -222,6 +255,7 @@ void Server::respond(std::shared_ptr<Socket::TCPSocket> client_socket, uint16_t 
 
 void Server::error(std::shared_ptr<Socket::TCPSocket> client_socket, uint16_t code) {
 
+    // Envia uma resposta com código e mensagem de erro.
     std::vector<std::pair<std::string, std::string>> headers;
     std::pair<std::string, std::string> content_type("Content-Type", "text/html");
     headers.push_back(content_type);
@@ -234,6 +268,7 @@ void Server::error(std::shared_ptr<Socket::TCPSocket> client_socket, uint16_t co
 }
 
 std::string Server::reason(uint16_t code) {
+    // Mensagens de erro de acordo com cada códgo
     switch (code)
     {
         case 200: return "OK";
@@ -253,7 +288,6 @@ std::string Server::reason(uint16_t code) {
 
 
 std::string Server::url_decode(const std::string& url) {
-
     std::string decoded;
 
     // Decodificando octetos codificados por %
@@ -276,12 +310,15 @@ std::string Server::url_decode(const std::string& url) {
 }
 
 std::string Server::lookup_type(const std::string& extension) {
-    if (extension == "css")  return "text/css";
-    if (extension == "html") return "text/html";       
+
+    // Retorna o MIME type de acordo com a extensão do arquivo.
+    if (extension == "html") return "text/html; charset=\"utf-8\""; 
+    if (extension == "css")  return "text/css";      
+    if (extension == "js")   return "text/javascript"; 
+    if (extension == "php")  return "text/x-php";      
     if (extension == "gif")  return "image/gif";       
     if (extension == "ico")  return "image/x-icon";    
     if (extension == "jpg")  return "image/jpeg";      
-    if (extension == "js")   return "text/javascript"; 
     if (extension == "php")  return "text/x-php";      
     if (extension == "png")  return "image/png";       
 
