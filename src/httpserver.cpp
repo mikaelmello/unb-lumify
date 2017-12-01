@@ -132,7 +132,7 @@ void Server::handle_request(std::shared_ptr<Socket::TCPSocket> client_socket) {
 
         client_request.method        = request_line[0];
         client_request.uri           = Helpers::split(request_line[1], '?');
-        client_request.file_path     = (client_request.uri[0] == "/" ? "/index.html" : client_request.uri[0]);
+        client_request.file_path     = (client_request.uri[0] == "/" ? "/index.php" : client_request.uri[0]);
         client_request.absolute_path = this->root_path + client_request.file_path;
         client_request.http_version  = request_line[2];
 
@@ -230,7 +230,73 @@ void Server::transfer(std::shared_ptr<Socket::TCPSocket> client_socket,
 }
 
 void Server::interpret(std::shared_ptr<Socket::TCPSocket> client_socket, Request client_request) {
-    // TODO
+    char* path = new char [client_request.absolute_path.length()+1];
+    log->info(client_request.absolute_path);
+    std::strcpy (path, client_request.absolute_path.c_str());
+    if (client_request.uri.size() == 1) {
+        client_request.uri.push_back("");
+    }
+    char* query = new char [client_request.uri[1].length()+1];
+    std::strcpy (query, client_request.uri[1].c_str());
+    // ensure path is readable
+    if (access(path, R_OK) == -1) {
+        error(client_socket, 403);
+        return;
+    }
+
+    // open pipe to PHP interpreter
+    char* format = "QUERY_STRING=\"%s\" REDIRECT_STATUS=200 SCRIPT_FILENAME=\"%s\" php-cgi";
+    char command[strlen(format) + (strlen(path) - 2) + (strlen(query) - 2) + 1];
+    if (sprintf(command, format, query, path) < 0) {
+        error(client_socket, 500);
+        return;
+    }
+    FILE* file = popen(command, "r");
+    if (file == NULL) {
+        error(client_socket, 500);
+        return;
+    }
+
+    // load interpreter's content
+    char* content;
+    size_t length;
+    if (load(file, (uint8_t**) &content, &length) == false) {
+        error(client_socket, 500);
+        return;
+    }
+
+    // close pipe
+    pclose(file);
+
+    // subtract php-cgi's headers from content's length to get body's length
+    char* haystack = content;
+    char* needle = strstr(haystack, "\r\n\r\n");
+    if (needle == NULL) {
+        free(content);
+        error(client_socket, 500);
+        return;
+    }
+
+    // extract headers
+    char header[needle + 2 - haystack + 1];
+    strncpy(header, content, needle + 2 - haystack);
+    header[needle + 2 - haystack] = '\0';
+
+    std::vector<std::pair<std::string, std::string>> headers;
+
+    std::vector<std::string> pre_headers = Helpers::split(header, "\r\n");
+    for (auto s : pre_headers) {
+        std::vector<std::string> key_value = Helpers::split(s, '=');
+        std::pair<std::string, std::string> single_parameter(key_value[0], key_value[1]);
+        headers.push_back(single_parameter);
+    }
+    headers.push_back(std::pair<std::string, std::string>("Content-Type", "text/html; charset=\"utf-8\""));
+    // respond with interpreter's content
+    respond(client_socket, 200, headers, (uint8_t*) needle + 4, length - (needle - haystack + 4));
+
+    // free interpreter's content
+    free(content);
+    free(path);
 }
 
 void Server::respond(std::shared_ptr<Socket::TCPSocket> client_socket, uint16_t code, 
@@ -319,8 +385,26 @@ std::string Server::lookup_type(const std::string& extension) {
     if (extension == "gif")  return "image/gif";       
     if (extension == "ico")  return "image/x-icon";    
     if (extension == "jpg")  return "image/jpeg";      
-    if (extension == "php")  return "text/x-php";      
     if (extension == "png")  return "image/png";       
 
     return "";
+}
+
+bool Server::load(FILE* file, uint8_t** content, size_t* length) {
+    char* cont = (char*) malloc(sizeof(char));
+    int size = 1;
+    int temp = size;
+    while(!feof(file)) {
+        fread(&cont[size-1], 1, 1, file);
+        if (feof(file)) cont[size-1] = '\0';
+        size++;
+        if (size > temp && !feof(file)) {
+            cont = (char*) realloc(cont, sizeof(char) * size);
+            temp = size;
+        }
+    };
+    *length = size-2;
+    *content = (uint8_t*) cont;
+    return true;
+
 }
