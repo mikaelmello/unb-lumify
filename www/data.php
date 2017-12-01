@@ -1,21 +1,29 @@
 <?php
 
-$answer = "";
-$fp = fsockopen("localhost", 44777, $errno, $errstr, 30);
-if (!$fp) {
-    echo '{"error":"true"}';
-    exit;
-} 
+function send_msg($message) {
 
-$message = $_GET["data"];
+    $answer = "";
+    $fp = fsockopen("localhost", 44777, $errno, $errstr, 30);
+    if (!$fp) {
+        return '{"error":"true", "before":"true"}';
+    }
 
-fwrite($fp, $message . ".:.:.");
-while (!feof($fp)) {
-    $answer .= fgets($fp, 128);
+    fwrite($fp, "PHP:" . $message . ":[end]");
+    while (!feof($fp)) {
+        $answer .= fgets($fp, 128);
+    }
+    fclose($fp);
+    return $answer;
 }
-fclose($fp);
 
-echo '{"error":"false", "' . $_GET["data"] . '": "' . $answer .'"}';
+switch($_GET["data"]) {
+    case "UPDATE_NICK":
+        echo send_msg("NEW_NICK:" . $_GET["nickname"]);
+        break;
+    case "UPDATE_DATA":
+        echo send_msg("UPDATE");
+        break;
+}
 
 
 ?>

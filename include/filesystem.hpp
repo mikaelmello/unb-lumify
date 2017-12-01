@@ -9,6 +9,8 @@ class FileSystem {
     public:
         FileSystem();
 
+        Folder* get_current_path();
+
         Folder* create_folder(const std::string& full_path);
 
         Folder* update_folder(const std::string& full_path, const std::string& new_name);

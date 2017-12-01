@@ -290,7 +290,8 @@ void TCPSocket::send(const uint8_t* message, int length, int flags) {
 std::string TCPSocket::recv(uint64_t maxlen, int flags) {
 
     uint8_t* message    = recv(&maxlen, flags);
-    uint8_t* message_nt = (uint8_t *) realloc(message, maxlen+1);
+    uint8_t* message_nt = (uint8_t *) malloc(maxlen+1);
+    memcpy(message_nt, message, maxlen);
     message_nt[maxlen]  = '\0';
 
     std::string string_msg((char *) message_nt);

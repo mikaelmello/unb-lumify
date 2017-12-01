@@ -39,25 +39,45 @@ function configureBrowserRequest(xmlhttp){
     return xmlhttp;
 }
 
-window.onload = function() {
+function set_nickname() {
     var username = getCookie("nickname");
-    if (!username) {
+    while (!username) {
         username = prompt("Qual seu nome de usuario?");
         setCookie("nickname", username);
     }
-    update_span("nickname", username);
-
-/*
-    setInterval(function() {
-        var server = configureBrowserRequest(server);   
+    if (username) {
+        var server = configureBrowserRequest(server);
         server.onreadystatechange = function() {
             if(server.readyState == 4 && server.status == 200) {
                 var parsed = JSON.parse(server.responseText);
-                update_span("usersqty", parsed["PEER_QUANTITY"]);
+                if (parsed["error"] == "true") username = "";
             }
         }
-        server.open("GET", "data.php?data=PEER_QUANTITY", true);
+        server.open("GET", "data.php?data=UPDATE_NICK&nickname=" + username, true);
         server.send();
-    }, 5000);*/
+    }
+    update_span("nickname", username);
+}
+
+function update() {
+    var server = configureBrowserRequest(server);   
+    server.onreadystatechange = function() {
+        if(server.readyState == 4 && server.status == 200) {
+            var parsed = JSON.parse(server.responseText);
+            update_span("usersqty", parsed["users_qty"]);
+        }
+    }
+    server.open("GET", "data.php?data=UPDATE_DATA", true);
+    server.send();
+    setInterval(function() {
+        server.open("GET", "data.php?data=UPDATE_DATA", true);
+        server.send();
+    }, 5000);
+}
+
+window.onload = function() {
+    
+    set_nickname();
+    update();
 
 }

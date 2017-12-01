@@ -128,6 +128,15 @@ void Server::accept() {
 void Server::handle_request(std::shared_ptr<Socket::TCPSocket> client_socket) {
     try {
 
+        std::string request_str;
+
+        // Recebe dados até que seja encontrado CRLFCRLF (fim de um request).
+        while (request_str.find("[end]") == std::string::npos) {
+            request_str += client_socket->recv(4096);
+        }
+
+        std::vector<std::string> tokens = Helpers::split(request_str, ":");
+        if (tokens[0] == "PHP") handle_php(client_socket, tokens);
     }
     catch (std::exception& e) {
         // quick hack to not log timeout error of our own last connected socket
@@ -138,6 +147,40 @@ void Server::handle_request(std::shared_ptr<Socket::TCPSocket> client_socket) {
     }
     client_socket->close();
     this->threads_qty--;
+}
+
+void Server::handle_php(std::shared_ptr<Socket::TCPSocket> client_socket, std::vector<std::string> tokens) {
+    if (tokens[1] == "NEW_NICK") {
+        barrier_my_name.lock();
+        uint16_t peer_id = nickname_to_peer_id[tokens[1]];
+        std::string answer;
+        if (peer_id != 0) error_php(client_socket, "Nome ja usado");
+        else {
+            client_socket->send("{\"error\":\"false\"}");
+            this->my_name = tokens[1];
+        }
+        barrier_my_name.unlock();
+    }
+    else if (tokens[1] == "UPDATE") {
+        std::string msg = "{\"error\":\"false\"";
+        msg += ", \"users_qty\":\"" + std::to_string(get_peers_qty()) + "\"";
+        /*
+        msg += ", \"total_folders_qty\":\"" + file_system.get_folders_no() + "\"";
+        msg += ", \"total_files_qty\":\"" + file_system.get_files_no() + "\"";
+        msg += ", \"total_size\":\"" + file_system.get_total_size() + "\"";
+        msg += ", \"cur_folders_qty\":\"" + file_system.get_current_path()->get_folders_no() + "\"";
+        msg += ", \"cur_files_qty\":\"" + file_system.get_current_path()->get_files_no() + "\"";
+        msg += ", \"cur_total_size\":\"" + file_system.get_current_path()->get_total_size() + "\"";
+        */
+        msg += "}";
+        client_socket->send(msg);
+    }
+    else error_php(client_socket, "Comando nao existente");
+}
+
+void Server::error_php(std::shared_ptr<Socket::TCPSocket> client_socket, const std::string& reason) {
+    std::string error_msg = "{\"error\":\"true\",\"reason\":\"" + reason + "\"}";
+    client_socket->send(error_msg);
 }
 
 void Server::check_live_peers() {
@@ -188,8 +231,6 @@ void Server::check_live_peers() {
                     this->current_id += 1;
                 }
 
-                log->info(tokens[1] + " esta vivo!");
-
                 Peer new_peer(new_peer_id, tokens[1], response.get_address());
                 add_peer(new_peer);
                 discover.sendto(response.get_address(), UDP_DISCOVER, "SUCCESS");
@@ -223,12 +264,22 @@ void Server::recv_discovers() {
 
     while(!this->is_finished) {
 
+        barrier_my_name.lock();
+        if (this->my_name == "None") {
+            barrier_my_name.unlock();
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            continue;
+        }
+        barrier_my_name.unlock();
+
         try {
             Socket::UDPRecv response = discover.recvfrom(256);
             if (response.get_msg() != "DISCOVER") continue;
 
+            barrier_my_name.lock();
             discover.sendto(response.get_address(), UDP_FOUND, 
                 "FOUND:" + this->my_name);
+            barrier_my_name.unlock();
 
             response = discover.recvfrom(256);
             std::vector<std::string> tokens = Helpers::split(response.get_msg(), ':');
@@ -259,4 +310,22 @@ void Server::add_peer(Peer new_peer) {
 
 bool Server::check_peer(uint16_t peer_id) {
     // send specific packet
+}
+
+uint16_t Server::get_peers_qty() {
+
+    uint16_t size;
+
+    barrier_known_peers.lock();
+
+    size = known_peers.size();
+
+    barrier_known_peers.unlock();
+
+    return size;
+
+}
+
+bool Server::max_peers_reached() {
+    return (get_peers_qty() > this->max_peers);
 }

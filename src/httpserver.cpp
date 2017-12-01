@@ -231,7 +231,6 @@ void Server::transfer(std::shared_ptr<Socket::TCPSocket> client_socket,
 
 void Server::interpret(std::shared_ptr<Socket::TCPSocket> client_socket, Request client_request) {
     char* path = new char [client_request.absolute_path.length()+1];
-    log->info(client_request.absolute_path);
     std::strcpy (path, client_request.absolute_path.c_str());
     if (client_request.uri.size() == 1) {
         client_request.uri.push_back("");
