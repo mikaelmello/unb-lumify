@@ -8,7 +8,7 @@ int main() {
     UDPSocket sv1(0);
 
     try {
-        sv1.bind(1234);
+        sv1.bind(44599);
         string add;
         int port;
         for (;;) {
@@ -18,13 +18,13 @@ int main() {
             if (input == 1) {
                 
                 UDPRecv xd = sv1.recvfrom(256);
-                cout << xd.getMsg() << endl;
-                add = xd.getAddress();
-                port = xd.getPort();
+                cout << xd.get_msg() << endl;
+                add = xd.get_address();
+                port = xd.get_port();
 
             }
             else {
-                sv1.sendto(add, port, legal + "\n");
+                sv1.sendto("192.168.0.10", 44600, legal);
             }
         }
     }

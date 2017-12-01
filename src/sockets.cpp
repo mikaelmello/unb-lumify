@@ -251,7 +251,8 @@ std::shared_ptr<TCPSocket> TCPSocket::accept() {
     sockaddr_in* client_address_in = (sockaddr_in*)&client_address;
     std::string client_ip = std::string(::inet_ntoa(client_address_in->sin_addr));
 
-    return std::make_shared<TCPSocket>(clientfd, client_info, port_used, client_ip, false, false, true);
+    return std::make_shared<TCPSocket>(clientfd, client_info, 
+        client_address_in->sin_port, client_ip, false, false, true);
 
 }
         
@@ -349,7 +350,12 @@ UDPRecv::UDPRecv(const std::string& name, const std::string& address, const std:
  *                  UDPSOCKET
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-UDPSocket::UDPSocket(int flags) : BaseSocket(SOCK_DGRAM, flags) {}
+UDPSocket::UDPSocket(int flags) : BaseSocket(SOCK_DGRAM, flags) {
+
+int broadcast_enable = 1;
+int ret = setsockopt(socketfd, SOL_SOCKET, SO_BROADCAST, 
+    &broadcast_enable, sizeof(broadcast_enable));
+}
 
 void UDPSocket::sendto(const std::string& address, uint32_t port, 
     const std::string& message, int flags) {
@@ -415,10 +421,8 @@ UDPRecv UDPSocket::recvfrom(uint64_t maxlen, int flags) {
     }
     buffer[result] = '\0';
 
-    client_info = ::gethostbyaddr((const char *)&client_address.sin_addr.s_addr, 
-                               sizeof(client_address.sin_addr.s_addr), AF_INET);
 
-    std::string host_name(client_info->h_name);
+    std::string host_name("Nao importa mais");
     std::string host_address(::inet_ntoa(client_address.sin_addr));
     std::string message(buffer);
 

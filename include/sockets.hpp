@@ -196,22 +196,22 @@ class UDPRecv {
 
     public:
         /// Get para a variável address.
-        std::string getAddress() {
+        std::string get_address() {
             return this->address;
         }
 
         /// Get para a variável name.
-        std::string getName() {
+        std::string get_name() {
             return this->name;
         }
 
         /// Get para a variável msg.
-        std::string getMsg() {
+        std::string get_msg() {
             return this->msg;
         }
 
         /// Get para a variável port.
-        uint32_t getPort() {
+        uint32_t get_port() {
             return this->port;
         }
 

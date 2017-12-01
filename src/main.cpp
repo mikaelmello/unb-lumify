@@ -3,6 +3,7 @@
 #include <chrono>
 #include <thread>
 #include "httpserver.hpp"
+#include "p2pserver.hpp"
 
 void handler(int param);
 
@@ -12,16 +13,16 @@ int main() {
 
     signal(SIGINT, handler);
     
-    //P2PServer sv0;
-    //sv0.start();
-
+    P2P::Server  sv0;
     HTTP::Server sv1;
+    sv0.start("files");
     sv1.start("www");
 
     while (!signaled) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
+    sv0.stop();
     sv1.stop();
     
 }

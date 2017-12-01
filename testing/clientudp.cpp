@@ -19,13 +19,13 @@ int main() {
             if (input == 1) {
                 
                 UDPRecv xd = cl1.recvfrom(256);
-                cout << xd.getMsg() << endl;
-                add = xd.getAddress();
-                port = xd.getPort();
+                cout << xd.get_msg() << endl;
+                add = xd.get_address();
+                port = xd.get_port();
 
             }
             else {
-                cl1.sendto("localhost", 1234, legal + "\n");
+                cl1.sendto("255.255.255.255", 1234, legal + "\n");
             }
 
         }
