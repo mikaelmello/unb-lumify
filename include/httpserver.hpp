@@ -126,6 +126,9 @@ class Server {
         /// @return String contendo o MIME type.
         std::string lookup_type(const std::string& extension);
 
+        /// Carrega um arquivo na memoria dinamicamente alocada
+        bool load(FILE* file, uint8_t** content, size_t* length);
+
         /// Booleano que sinaliza o fim da execução do servidor.
         std::atomic<bool> is_finished;
 
