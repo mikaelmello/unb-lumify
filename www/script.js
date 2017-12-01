@@ -39,7 +39,23 @@ function configureBrowserRequest(xmlhttp){
     return xmlhttp;
 }
 
-window.onload = function() {
+function login() {
+    username = document.forms["login"]["user"].value;
+    if (username != "") {
+        setCookie("nickname", username);
+        location.href = "/index.php";
+    }
+    else {
+        alert("Insira um Usuário válido!");
+    }
+}
+
+function logout() {
+    document.cookie = 'nickname=; Max-Age=0';
+    location.href = "/login.php";
+}
+
+/*window.onload = function() {
     var username = getCookie("nickname");
     if (!username) {
         username = prompt("Qual seu nome de usuario?");
@@ -47,7 +63,7 @@ window.onload = function() {
     }
     update_span("nickname", username);
 
-/*
+
     setInterval(function() {
         var server = configureBrowserRequest(server);   
         server.onreadystatechange = function() {
@@ -58,6 +74,6 @@ window.onload = function() {
         }
         server.open("GET", "data.php?data=PEER_QUANTITY", true);
         server.send();
-    }, 5000);*/
+    }, 5000);
 
-}
+}*/
