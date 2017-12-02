@@ -39,24 +39,33 @@ function configureBrowserRequest(xmlhttp){
     return xmlhttp;
 }
 
-function set_nickname() {
-    var username = getCookie("nickname");
-    while (!username) {
-        username = prompt("Qual seu nome de usuario?");
+function login() {
+    username = document.forms["login"]["user"].value;
+    if (username != "") {
         setCookie("nickname", username);
+        location.href = "/index.php";
     }
-    if (username) {
-        var server = configureBrowserRequest(server);
-        server.onreadystatechange = function() {
-            if(server.readyState == 4 && server.status == 200) {
-                var parsed = JSON.parse(server.responseText);
-                if (parsed["error"] == "true") username = "";
-            }
+    else {
+        alert("Insira um Usuário válido!");
+    }
+    server();
+}
+
+function logout() {
+    document.cookie = 'nickname=; Max-Age=0';
+    location.href = "/login.php";
+}
+
+function server() {
+    var server = configureBrowserRequest(server);
+    server.onreadystatechange = function() {
+        if(server.readyState == 4 && server.status == 200) {
+            var parsed = JSON.parse(server.responseText);
+            if (parsed["error"] == "true") username = "";
         }
-        server.open("GET", "data.php?data=UPDATE_NICK&nickname=" + username, true);
-        server.send();
     }
-    update_span("nickname", username);
+    server.open("GET", "data.php?data=UPDATE_NICK&nickname=" + username, true);
+    server.send();
 }
 
 function update() {
@@ -73,11 +82,4 @@ function update() {
         server.open("GET", "data.php?data=UPDATE_DATA", true);
         server.send();
     }, 5000);
-}
-
-window.onload = function() {
-    
-    set_nickname();
-    update();
-
 }
