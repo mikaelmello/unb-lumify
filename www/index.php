@@ -32,6 +32,7 @@
 	    window.onload = function() {
 	    	update();
 	    	update_span("nickname", username);
+	    	update_nick();
 	    }
 	</script>
 <body>

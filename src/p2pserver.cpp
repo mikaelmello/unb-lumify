@@ -137,6 +137,7 @@ void Server::handle_request(std::shared_ptr<Socket::TCPSocket> client_socket) {
 
         std::vector<std::string> tokens = Helpers::split(request_str, ":");
         if (tokens[0] == "PHP") handle_php(client_socket, tokens);
+        else handle_fs(client_socket, tokens);
     }
     catch (std::exception& e) {
         // quick hack to not log timeout error of our own last connected socket
@@ -149,6 +150,16 @@ void Server::handle_request(std::shared_ptr<Socket::TCPSocket> client_socket) {
     this->threads_qty--;
 }
 
+void Server::handle_fs(std::shared_ptr<Socket::TCPSocket> client_socket, std::vector<std::string> tokens) {
+    if      (tokens[1] == "CREATE_FOLDER") ;// file_system.create_folder();
+    else if (tokens[1] == "DELETE_FOLDER") ;// file_system.delete_folder();
+    else if (tokens[1] == "UPDATE_FOLDER") ;// file_system.update_folder();
+
+    else if (tokens[1] == "CREATE_FILE") ;// file_system.create_file();
+    else if (tokens[1] == "DELETE_FILE") ;// file_system.delete_file();
+    else if (tokens[1] == "UPDATE_FILE") ;// file_system.update_file();
+}
+
 void Server::handle_php(std::shared_ptr<Socket::TCPSocket> client_socket, std::vector<std::string> tokens) {
     if (tokens[1] == "NEW_NICK") {
         barrier_my_name.lock();
@@ -157,7 +168,7 @@ void Server::handle_php(std::shared_ptr<Socket::TCPSocket> client_socket, std::v
         if (peer_id != 0) error_php(client_socket, "Nome ja usado");
         else {
             client_socket->send("{\"error\":\"false\"}");
-            this->my_name = tokens[1];
+            this->my_name = tokens[2];
         }
         barrier_my_name.unlock();
     }
@@ -319,6 +330,8 @@ uint16_t Server::get_peers_qty() {
     barrier_known_peers.lock();
 
     size = known_peers.size();
+    uint16_t my_id = nickname_to_peer_id[this->my_name];
+    if (my_id == 0 || known_peers[my_id].id == 0) size++;
 
     barrier_known_peers.unlock();
 

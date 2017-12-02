@@ -19,7 +19,7 @@ class FileSystem {
 
         void delete_folder(const std::string& full_path);
 
-        File* create_file(const std::string& full_path, uint32_t size, uint16_t owner_1, uint16_t owner_2 = 0);
+        File* create_file(const std::string& full_path, const std::string& author, uint32_t size, uint16_t owner_1, uint16_t owner_2 = 0);
 
         File* update_file(const std::string& full_path, const std::string& new_name, uint16_t new_owner_1, uint16_t new_owner_2);
 
@@ -73,6 +73,7 @@ class Folder {
 class File {
     public:
         std::string name;
+        std::string author;
         uint32_t id;
         uint16_t owner_1;
         uint16_t owner_2;

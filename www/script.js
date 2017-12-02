@@ -48,7 +48,7 @@ function login() {
     else {
         alert("Insira um Usuário válido!");
     }
-    server();
+    update_nick();
 }
 
 function logout() {
@@ -56,7 +56,7 @@ function logout() {
     location.href = "/login.php";
 }
 
-function server() {
+function update_nick() {
     var server = configureBrowserRequest(server);
     server.onreadystatechange = function() {
         if(server.readyState == 4 && server.status == 200) {

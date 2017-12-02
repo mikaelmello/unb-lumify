@@ -17,7 +17,7 @@ namespace P2P {
 struct Peer {
     Peer(uint16_t id, std::string name, std::string host) :
         id(id), name(name), host(host) {}
-    Peer() : id(-1) {}
+    Peer() : id(0) {}
     uint16_t id;
     std::string name;
     std::string host;
@@ -48,6 +48,8 @@ class Server {
         /// Define o que fazer com um request.
         /// @param client_socket TCPSocket do cliente conectado ao servidor.
         void handle_request(std::shared_ptr<Socket::TCPSocket> client_socket);
+
+        void handle_fs(std::shared_ptr<Socket::TCPSocket> client_socket, std::vector<std::string> tokens);
 
         void handle_php(std::shared_ptr<Socket::TCPSocket> client_socket, std::vector<std::string> tokens);
 
