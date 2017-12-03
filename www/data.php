@@ -26,6 +26,11 @@ switch($_GET["data"]) {
     case "GET_FS":
         echo send_msg("GET_FS");
         break;
+    case "CREATE_FOLDER":
+        echo send_msg("CREATE_FOLDER:" . $_GET["fullpath"]);
+        break;
+    case "UPDATE_FOLDER":
+        echo send_msg("UPDATE_FOLDER:" . $_GET["fullpath"] . ":" . $_GET["newname"]);
 }
 
 

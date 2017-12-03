@@ -50,7 +50,7 @@ void Server::start(const std::string& path, uint32_t port) {
 
         log->info("Listening on Port " + std::to_string(port));
 
-        // Aceita as conexões em um thread separado e 
+        // Aceita as conexões em um thread separado e
         // volta pra função que chamou start()
         std::thread t1([this] { this->accept(); });
         t1.detach();
@@ -106,13 +106,13 @@ void Server::accept() {
             // Cria um ponteiro compartilhado que é uma socket do cliente
             // retornada por server_socket.accept();
             std::shared_ptr<Socket::TCPSocket> client_socket = this->server_socket.accept();
-            
+
             // Define um timeout para receber dados do cliente.
             // Se o servidor já tiver sido finalizado, define-se
             // 1 segundo, 10 caso contrário.
             uint16_t client_timeout = (this->is_finished ? 1 : 10);
             client_socket->set_timeout(client_timeout);
-            
+
             // Inicia um thread para lidar com o request do cliente e então
             // separa ele do thread atual, de modo a aceitar mais conexõs
             std::thread t2([this, client_socket] { this->handle_request(client_socket); });
@@ -144,6 +144,7 @@ void Server::handle_request(std::shared_ptr<Socket::TCPSocket> client_socket) {
         if (!this->is_finished) {
             log->error("Error with user " + client_socket->get_ip_address() + ":");
             log->error(e.what());
+
         }
     }
     client_socket->close();
@@ -151,21 +152,27 @@ void Server::handle_request(std::shared_ptr<Socket::TCPSocket> client_socket) {
 }
 
 void Server::handle_fs(std::shared_ptr<Socket::TCPSocket> client_socket, std::vector<std::string> tokens) {
-    if      (tokens[1] == "CREATE_FOLDER") ;// file_system.create_folder();
-    else if (tokens[1] == "DELETE_FOLDER") ;// file_system.delete_folder();
-    else if (tokens[1] == "UPDATE_FOLDER") ;// file_system.update_folder();
+    try {
+        if (tokens[1] == "CREATE_FOLDER") file_system.create_folder(tokens[2]);
+        else if (tokens[1] == "DELETE_FOLDER") ;//file_system.delete_folder(tokens[2]);
+        else if (tokens[1] == "UPDATE_FOLDER") file_system.update_folder(tokens[2], tokens[3]);
 
-    else if (tokens[1] == "CREATE_FILE") ;// file_system.create_file();
-    else if (tokens[1] == "DELETE_FILE") ;// file_system.delete_file();
-    else if (tokens[1] == "UPDATE_FILE") ;// file_system.update_file();
-    else if (tokens[1] == "SYNC") {
-        std::string fs_json = tokens[2];
-        for (int i = 3, n = tokens.size() - 1; i < n; i++) {
-            fs_json += ":" + tokens[i];
+        else if (tokens[1] == "CREATE_FILE") ;// file_system.create_file();
+        else if (tokens[1] == "DELETE_FILE") ;// file_system.delete_file();
+        else if (tokens[1] == "UPDATE_FILE") ;// file_system.update_file();
+        else if (tokens[1] == "SYNC") {
+            std::string fs_json = tokens[2];
+            for (int i = 3, n = tokens.size() - 1; i < n; i++) {
+                fs_json += ":" + tokens[i];
+            }
+
+            // sync fs
+
         }
-
-        // sync fs
-
+    }
+    catch (std::invalid_argument& e) {
+        error(client_socket, e.what(), tokens[0] == "PHP");
+        if (tokens[0] == "PHP") throw e;
     }
 }
 
@@ -178,7 +185,7 @@ void Server::handle_php(std::shared_ptr<Socket::TCPSocket> client_socket, std::v
         barrier_my_name.lock();
         uint16_t peer_id = nickname_to_peer_id[tokens[1]];
         std::string answer;
-        if (peer_id != 0) error_php(client_socket, "Nome ja usado");
+        if (peer_id != 0) error(client_socket, "Nome ja usado", true);
         else {
             client_socket->send("{\"error\":\"false\"}");
             this->my_name = tokens[2];
@@ -187,15 +194,20 @@ void Server::handle_php(std::shared_ptr<Socket::TCPSocket> client_socket, std::v
     }
     else if (tokens[1] == "UPDATE") {
         std::string msg = "{\"error\":\"false\"";
-        msg += ", \"users_qty\":\"" + std::to_string(get_peers_qty()) + "\"";
-        /*
-        msg += ", \"total_folders_qty\":\"" + file_system.get_folders_no() + "\"";
-        msg += ", \"total_files_qty\":\"" + file_system.get_files_no() + "\"";
-        msg += ", \"total_size\":\"" + file_system.get_total_size() + "\"";
-        msg += ", \"cur_folders_qty\":\"" + file_system.get_current_path()->get_folders_no() + "\"";
-        msg += ", \"cur_files_qty\":\"" + file_system.get_current_path()->get_files_no() + "\"";
-        msg += ", \"cur_total_size\":\"" + file_system.get_current_path()->get_total_size() + "\"";
-        */
+        msg += ", \"users_qty\":\"" +
+            std::to_string(get_peers_qty()) + "\"";
+        msg += ", \"total_folders_qty\":\"" +
+            std::to_string(file_system.get_folders_no()) + "\"";
+        msg += ", \"total_files_qty\":\"" +
+            std::to_string(file_system.get_files_no()) + "\"";
+        msg += ", \"total_size\":\"" +
+            std::to_string(file_system.get_total_size()) + "\"";
+        msg += ", \"cur_folders_qty\":\"" +
+            std::to_string(file_system.current_path->get_folders_no()) + "\"";
+        msg += ", \"cur_files_qty\":\"" +
+            std::to_string(file_system.current_path->get_files_no()) + "\"";
+        msg += ", \"cur_total_size\":\"" +
+            std::to_string(file_system.current_path->get_total_size()) + "\"";
         msg += "}";
         client_socket->send(msg);
     }
@@ -204,30 +216,37 @@ void Server::handle_php(std::shared_ptr<Socket::TCPSocket> client_socket, std::v
         client_socket->send(msg);
     }
     else if (fs_commands.find(tokens[1]) != fs_commands.end()) {
-        handle_fs(client_socket, tokens);
 
-        barrier_my_name.lock();
-        barrier_known_peers.lock();
-        for (auto peer : known_peers) {
-            if (peer.second.name == this->my_name) continue;
-            Socket::TCPSocket fs_update;
-            fs_update.connect(peer.second.host, this->port);
-            std::string message = "FS";
-            for (int i = 1, n = tokens.size(); i < n; i++) {
-                message += ":" + tokens[i];
+        try {
+            handle_fs(client_socket, tokens);
+            client_socket->send("{\"error\":\"false\"}");
+
+            barrier_my_name.lock();
+            barrier_known_peers.lock();
+            for (auto peer : known_peers) {
+                if (peer.second.name == this->my_name) continue;
+                Socket::TCPSocket fs_update;
+                fs_update.connect(peer.second.host, this->port);
+                std::string message = "FS";
+                for (int i = 1, n = tokens.size(); i < n; i++) {
+                    message += ":" + tokens[i];
+                }
+                fs_update.send(message);
             }
-            fs_update.send(message);
-            
+            barrier_known_peers.unlock();
+            barrier_my_name.unlock();
         }
-        barrier_known_peers.unlock();
-        barrier_my_name.unlock();
+        catch (std::invalid_argument& e) {
+        }
 
     }
-    else error_php(client_socket, "Comando nao existente");
+    else error(client_socket, "Comando nao existente", true);
 }
 
-void Server::error_php(std::shared_ptr<Socket::TCPSocket> client_socket, const std::string& reason) {
-    std::string error_msg = "{\"error\":\"true\",\"reason\":\"" + reason + "\"}";
+void Server::error(std::shared_ptr<Socket::TCPSocket> client_socket, const std::string& reason, bool php) {
+    std::string error_msg;
+    if (php) error_msg = "{\"error\":\"true\",\"reason\":\"" + reason + "\"}";
+    else error_msg = "FS:ERROR:[end]";
     client_socket->send(error_msg);
 }
 
@@ -261,12 +280,12 @@ void Server::check_live_peers() {
 
                 uint16_t new_peer_id = nickname_to_peer_id[tokens[1]];
 
-                if (tokens.size() != 2 || tokens[0] != "FOUND" || 
-                    tokens[1].length() <= 0) {  
+                if (tokens.size() != 2 || tokens[0] != "FOUND" ||
+                    tokens[1].length() <= 0) {
                     // if answer received is not the one we want
                     continue;
                 }
-                else if (new_peer_id != 0 && 
+                else if (new_peer_id != 0 &&
                     known_peers_backup[new_peer_id].host != response.get_address()) {
                     // if replier answered with a nickname that is not his
                     // send message indicating NICK error
@@ -288,7 +307,7 @@ void Server::check_live_peers() {
             // stop waiting for new answers
         }
 
-        
+
         // pausar ate completar 30 segundos desde o ultimo broadcast
         // aumenta de 1 em 1 segundo para verificar sempre se a execucao foi
         // finalizada
@@ -325,7 +344,7 @@ void Server::recv_discovers() {
             if (response.get_msg() != "DISCOVER") continue;
 
             barrier_my_name.lock();
-            discover.sendto(response.get_address(), UDP_FOUND, 
+            discover.sendto(response.get_address(), UDP_FOUND,
                 "FOUND:" + this->my_name);
             barrier_my_name.unlock();
 

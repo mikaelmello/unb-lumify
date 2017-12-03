@@ -69,11 +69,17 @@ function update_nick() {
 }
 
 function update() {
-    var server = configureBrowserRequest(server);   
+    var server = configureBrowserRequest(server);
     server.onreadystatechange = function() {
         if(server.readyState == 4 && server.status == 200) {
             var parsed = JSON.parse(server.responseText);
             update_span("usersqty", parsed["users_qty"]);
+            update_span("current_subfolders", parsed["cur_folders_qty"]);
+            update_span("current_files", parsed["cur_files_qty"]);
+            update_span("current_size", parsed["cur_total_size"]);
+            update_span("subfolders", parsed["total_folders_qty"]);
+            update_span("files", parsed["total_files_qty"]);
+            update_span("size", parsed["total_size"]);
         }
     }
     server.open("GET", "data.php?data=UPDATE_DATA", true);
@@ -85,7 +91,7 @@ function update() {
 }
 
 function get_fs() {
-    var server = configureBrowserRequest(server);   
+    var server = configureBrowserRequest(server);
     server.onreadystatechange = function() {
         if(server.readyState == 4 && server.status == 200) {
             var parsed = JSON.parse(server.responseText);
@@ -94,4 +100,30 @@ function get_fs() {
     }
     server.open("GET", "data.php?data=GET_FS", true);
     server.send();    
+}
+
+function create_folder(fullpath) {
+    var server = configureBrowserRequest(server);
+    server.onreadystatechange = function() {
+        if(server.readyState == 4 && server.status == 200) {
+            var parsed = JSON.parse(server.responseText);
+            console.log(server.responseText);
+        }
+    }
+    server.open("GET", "data.php?data=CREATE_FOLDER&fullpath="+fullpath, true);
+    server.send();    
+
+}
+
+function update_folder(fullpath, new_name) {
+    var server = configureBrowserRequest(server);
+    server.onreadystatechange = function() {
+        if(server.readyState == 4 && server.status == 200) {
+            var parsed = JSON.parse(server.responseText);
+            console.log(server.responseText);
+        }
+    }
+    server.open("GET", "data.php?data=UPDATE_FOLDER&fullpath="+fullpath+"&newname="+new_name, true);
+    server.send();    
+
 }

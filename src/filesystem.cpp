@@ -1,4 +1,5 @@
 #include "filesystem.hpp"
+#include "helpers.hpp"
 #include <iostream>
 #include <fstream>
 #include <unistd.h>
@@ -7,7 +8,7 @@
 
 
 File::File(const std::string& name, const std::string& author, uint32_t size, uint32_t id,
-    uint16_t owner_1, uint16_t owner_2) : name(name), author(author), 
+    uint16_t owner_1, uint16_t owner_2) : name(name), author(author),
     size(size), owner_1(owner_1), owner_2(owner_2), id(id) {
 }
 
@@ -79,6 +80,60 @@ FileSystem::FileSystem() : root("root"), current_path(&root), nextID(1) {
 
 }
 
+Folder* FileSystem::create_folder(const std::string& full_path) {
+    std::vector<std::string> tokens = Helpers::split(full_path, '/');
+    if (tokens[0] != "root") throw std::invalid_argument("full_path wrong");
+
+    Folder* last = NULL;
+    Folder* current = &root;
+    int n = tokens.size() - 1;
+    for (int i = 1; i < n; i++) {
+        last = current;
+        current = &current->subfolders[tokens[i]];
+        if (current->name == "") {
+            last->subfolders.erase(tokens[i]);
+            throw std::invalid_argument("folder in the middle not found");
+        }
+    }
+
+    current->subfolders[tokens[n]] = Folder(tokens[n]);
+
+    return current;
+}
+
+Folder* FileSystem::update_folder(const std::string& full_path, const std::string& new_name) {
+    std::vector<std::string> tokens = Helpers::split(full_path, '/');
+    if (tokens[0] != "root") throw std::invalid_argument("INVALID_PATH");
+
+    Folder* last = NULL;
+    Folder* current = &root;
+    int n = tokens.size();
+    for (int i = 1; i < n; i++) {
+        last = current;
+        current = &current->subfolders[tokens[i]];
+        if (current->name == "") {
+            last->subfolders.erase(tokens[i]);
+            throw std::invalid_argument("INVALID_PATH");
+        }
+    }
+
+    current->name = new_name;
+
+    return current;
+}
+
 std::string FileSystem::get_json() {
     return this->root.get_json();
+}
+
+uint64_t FileSystem::get_total_size() {
+    return root.get_total_size();
+}
+
+uint32_t FileSystem::get_files_no() {
+    return root.get_files_no();
+}
+
+uint32_t FileSystem::get_folders_no() {
+    return root.get_folders_no();
 }

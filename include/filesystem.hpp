@@ -26,6 +26,7 @@ class File {
 class Folder {
     public:
         Folder(const std::string& name);
+        Folder() {}
         std::string name;
         std::map<std::string, Folder> subfolders;
         std::map<std::string, File> files;
@@ -85,7 +86,7 @@ class FileSystem {
         Folder root;
         Folder* current_path;
 
-    private: 
+    private:
         uint32_t nextID;
 
 };

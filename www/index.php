@@ -52,13 +52,6 @@
 				<h2>Usuário<a onClick="mostra('usuario')" href="javascript:void(0)"><i class="fa fa-angle-right direita"></a></i></h2>
 				<ul id="usuario" class="cntrl-1">
 					<li>Nome: <span id="nickname"></span></li>
-					<?php 
-						$sock = socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
-						socket_connect($sock, "8.8.8.8", 53);
-						socket_getsockname($sock, $name); // $name passed by reference
-
-     					$localAddr = $name; 
-     				?>
 					<?php
 						$sock = socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
 						socket_connect($sock, "8.8.8.8", 53);
@@ -73,18 +66,18 @@
 			<div class="col-12 col-m-6 info pasta">
 				<h2>Pasta<a onClick="mostra('pasta')" href="javascript:void(0)"><i class="fa fa-angle-right direita"></i></a></h2>
 				<ul id="pasta" class="cntrl-1">
-					<li><i class="fa fa-folder-open"></i> Subpastas: -</li>
-					<li><i class="fa fa-file"></i> Arquivos: -</li>
-					<li><i class="fa fa-database"></i> - bytes</li>
+					<li><i class="fa fa-folder-open"></i> Subpastas: <span id="current_subfolders"></span></li>
+					<li><i class="fa fa-file"></i> Arquivos: <span id="current_files"></span></li>
+					<li><i class="fa fa-database"></i> <span id="current_size"></span> bytes</li>
 				</ul>
 			</div>
 			<div class="col-12 col-m-12 info">
 				<h2>Sistema<a onClick="mostra('sistema')" href="javascript:void(0)"><i class="fa fa-angle-right direita"></i></a></h2>
 				<ul id="sistema" class="cntrl-1">
 					<li><i class="fa fa-user"></i> Usuários: <span id="usersqty"></span></li>
-					<li><i class="fa fa-folder-open"></i> Pastas: -</li>
-					<li><i class="fa fa-file"></i> Arquivos: -</li>
-					<li><i class="fa fa-database"></i> - bytes</li>
+					<li><i class="fa fa-folder-open"></i> Pastas: <span id="subfolders"></span></li>
+					<li><i class="fa fa-file"></i> Arquivos: <span id="files"></span></li>
+					<li><i class="fa fa-database"></i> <span id="size"></span> bytes</li>
 				</ul>
 			</div>
 		</div>

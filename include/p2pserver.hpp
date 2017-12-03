@@ -19,8 +19,14 @@ struct Peer {
     Peer(uint16_t id, std::string name, std::string host) :
         id(id), name(name), host(host) {}
     Peer() : id(0) {}
+
+    /// ID do peer especificamente neste nó da rede.
     uint16_t id;
+
+    /// Nome do peer
     std::string name;
+
+    /// Endereço IP do peer.
     std::string host;
 };
 
@@ -50,13 +56,21 @@ class Server {
         /// @param client_socket TCPSocket do cliente conectado ao servidor.
         void handle_request(std::shared_ptr<Socket::TCPSocket> client_socket);
 
+        /// Recebe um request para o sistema de arquivos e age de acordo.
+        /// @param client_socket TCPSocket do cliente conectado ao servidor.
+        /// @param tokens Elementos do request recebido.
         void handle_fs(std::shared_ptr<Socket::TCPSocket> client_socket, std::vector<std::string> tokens);
 
+        /// Recebe um request do browser e age de acordo.
+        /// @param client_socket TCPSocket do cliente conectado ao servidor.
+        /// @param tokens Elementos do request recebido.
         void handle_php(std::shared_ptr<Socket::TCPSocket> client_socket, std::vector<std::string> tokens);
 
-        void error_php(std::shared_ptr<Socket::TCPSocket> client_socket, const std::string& reason);
-
-        std::string get_fs_json();
+        /// Responde para o browser com uma mensagem de erro.
+        /// @param client_socket TCPSocket do cliente conectado ao servidor.
+        /// @param reason Motivo do erro ter acontecido.
+        /// @param Se php for true, então o erro é enviado em formato JSON.
+        void error(std::shared_ptr<Socket::TCPSocket> client_socket, const std::string& reason, bool php = false);
 
         /// Consegue os IDs de todos os peer conectados na rede
         /// @return Um conjunto com todos os IDs na rede.
@@ -67,6 +81,8 @@ class Server {
         /// @return Booleano indicando se o peer está conectado na rede
         bool check_peer(uint16_t peer_id);
 
+        /// Adiciona um novo peer na lista de peers conhecidos.
+        /// @param new_peer Estrutura do peer a ser adicionado.
         void add_peer(Peer new_peer);
 
         /// Quantidade de nós conhecidos na rede
@@ -98,11 +114,13 @@ class Server {
         /// Socket do servidor, onde há a espera por conexões.
         Socket::TCPSocket server_socket;
 
+        /// Sistema de arquivos compartilhado.
         FileSystem file_system;
 
         /// Caminho raiz do servidor.
         std::string root_path;
 
+        /// Nome do nó na rede.
         std::string my_name;
 
         /// Porta usada pelo servidor.

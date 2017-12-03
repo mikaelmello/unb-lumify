@@ -9,12 +9,16 @@ Sistema de Arquivos Distribuído desenvolvido para a disciplina Redes de Computa
  * Luan Pignata
  * Mikael Mello
 
-## Instalação
+## Usagem
 
-Irá realizar o download do projeto e compilará.
+Seu computador deve ter `php-cgi` instalado para o funcionamento correto do servidor web.
 
 ```bash
 $ git clone https://github.com/mikaelmello/lumify
 $ cd lumify
+$ mkdir obj
 $ make
+$ ./lumify
 ```
+
+Abra o endereço `http://localhost:8080` no seu browser de preferência.
