@@ -23,6 +23,9 @@ switch($_GET["data"]) {
     case "UPDATE_DATA":
         echo send_msg("UPDATE");
         break;
+    case "GET_FS":
+        echo send_msg("GET_FS");
+        break;
 }
 
 

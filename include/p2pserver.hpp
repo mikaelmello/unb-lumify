@@ -10,6 +10,7 @@
 #include "helpers.hpp"
 #include "sockets.hpp"
 #include "protocol.hpp"
+#include "filesystem.hpp"
 
 namespace P2P {
 
@@ -55,6 +56,8 @@ class Server {
 
         void error_php(std::shared_ptr<Socket::TCPSocket> client_socket, const std::string& reason);
 
+        std::string get_fs_json();
+
         /// Consegue os IDs de todos os peer conectados na rede
         /// @return Um conjunto com todos os IDs na rede.
         std::set<uint16_t>  get_peer_ids();
@@ -94,6 +97,8 @@ class Server {
 
         /// Socket do servidor, onde há a espera por conexões.
         Socket::TCPSocket server_socket;
+
+        FileSystem file_system;
 
         /// Caminho raiz do servidor.
         std::string root_path;

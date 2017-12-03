@@ -10,14 +10,14 @@ int main() {
     TCPSocket cl1(0);
 
     try {
-        cl1.connect("localhost", 8080);
+        cl1.connect("localhost", 44777);
         for (;;) {
             int input;
             string legal;
             cin >> input >> legal;
             if (input == 1) std::cout << cl1.recv(256) << std::endl;
             else {
-                cl1.send(legal + "\n");
+                cl1.send(legal);
             }
 
         }

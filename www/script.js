@@ -83,3 +83,15 @@ function update() {
         server.send();
     }, 5000);
 }
+
+function get_fs() {
+    var server = configureBrowserRequest(server);   
+    server.onreadystatechange = function() {
+        if(server.readyState == 4 && server.status == 200) {
+            var parsed = JSON.parse(server.responseText);
+            console.log(server.responseText);
+        }
+    }
+    server.open("GET", "data.php?data=GET_FS", true);
+    server.send();    
+}

@@ -134,7 +134,7 @@ void Server::handle_request(std::shared_ptr<Socket::TCPSocket> client_socket) {
         while (request_str.find("[end]") == std::string::npos) {
             request_str += client_socket->recv(4096);
         }
-
+        log->info(client_socket->get_ip_address() + " " + request_str);
         std::vector<std::string> tokens = Helpers::split(request_str, ":");
         if (tokens[0] == "PHP") handle_php(client_socket, tokens);
         else handle_fs(client_socket, tokens);
@@ -158,9 +158,22 @@ void Server::handle_fs(std::shared_ptr<Socket::TCPSocket> client_socket, std::ve
     else if (tokens[1] == "CREATE_FILE") ;// file_system.create_file();
     else if (tokens[1] == "DELETE_FILE") ;// file_system.delete_file();
     else if (tokens[1] == "UPDATE_FILE") ;// file_system.update_file();
+    else if (tokens[1] == "SYNC") {
+        std::string fs_json = tokens[2];
+        for (int i = 3, n = tokens.size() - 1; i < n; i++) {
+            fs_json += ":" + tokens[i];
+        }
+
+        // sync fs
+
+    }
 }
 
 void Server::handle_php(std::shared_ptr<Socket::TCPSocket> client_socket, std::vector<std::string> tokens) {
+
+    std::set<std::string> fs_commands = {"CREATE_FOLDER", "DELETE_FOLDER", "UPDATE_FOLDER",
+                                        "UPDATE_FILE", "DELETE_FILE", "CREATE_FILE"};
+
     if (tokens[1] == "NEW_NICK") {
         barrier_my_name.lock();
         uint16_t peer_id = nickname_to_peer_id[tokens[1]];
@@ -185,6 +198,30 @@ void Server::handle_php(std::shared_ptr<Socket::TCPSocket> client_socket, std::v
         */
         msg += "}";
         client_socket->send(msg);
+    }
+    else if (tokens[1] == "GET_FS") {
+        std::string msg = file_system.get_json();
+        client_socket->send(msg);
+    }
+    else if (fs_commands.find(tokens[1]) != fs_commands.end()) {
+        handle_fs(client_socket, tokens);
+
+        barrier_my_name.lock();
+        barrier_known_peers.lock();
+        for (auto peer : known_peers) {
+            if (peer.second.name == this->my_name) continue;
+            Socket::TCPSocket fs_update;
+            fs_update.connect(peer.second.host, this->port);
+            std::string message = "FS";
+            for (int i = 1, n = tokens.size(); i < n; i++) {
+                message += ":" + tokens[i];
+            }
+            fs_update.send(message);
+            
+        }
+        barrier_known_peers.unlock();
+        barrier_my_name.unlock();
+
     }
     else error_php(client_socket, "Comando nao existente");
 }
