@@ -110,6 +110,10 @@ td:nth-child(7) {
 	text-align: center;
 }
 
+td:nth-child(8) {
+	text-align: center;
+}
+
 .coluna {
 	background-color: #ffffff;
 	padding: 0px;
