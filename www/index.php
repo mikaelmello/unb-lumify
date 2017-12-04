@@ -41,7 +41,7 @@
 		<nav class="menu">
 			<ul>
 				<li><i class="fa fa-user-circle-o"></i> Usuário</li>
-				<li><i class="fa fa-folder"></i> Pastas</li>
+				<a onClick="arquivos()" href="javascript:void(0)"><li><i class="fa fa-folder"></i> Pastas</li></a>
 				<a onClick="logout()" href="javascript:void(0)"><li><i class="fa fa-power-off"></i> Sair</li></a>
 			</ul>
 		</nav>
@@ -81,7 +81,42 @@
 				</ul>
 			</div>
 		</div>
-		<div class="col-9 col-m-12 conteudo" id="lista" style="color:#000"></div>
+		<div class="col-9 col-m-12 conteudo none" id="pastas" style="color:#000">
+			<p>Caminho: <span id="caminho"></span></p>
+			<table id="diretorios">
+				<caption>Diretórios</caption>
+				<tr>
+					<th>Nome</th>
+					<th>Pastas</th>
+					<th>Arquivos</th>
+					<th>Tamanho</th>
+					<th>Tipo</th>
+				</tr>
+			</table>
+			<table id="arquivos">
+				<caption>Arquivos</caption>
+				<tr>
+					<th>Nome</th>
+					<th>Autor</th>
+					<th>Tamanho</th>
+					<th>Par 1</th>
+					<th>Par 2</th>
+				</tr>
+			</table>
+		</div>
+		<div class="col-9 col-m-12 conteudo none" id="usuarios" style="color:#000">
+			<p>Caminho: <span id="caminho"></span></p>
+			<table id="users">
+				<caption>asdf</caption>
+				<tr>
+					<th>Nome</th>
+					<th>Pastas</th>
+					<th>Arquivos</th>
+					<th>Tamanho</th>
+					<th>Tipo</th>
+				</tr>
+			</table>
+		</div>
 	</div>
 </body>
 </html>

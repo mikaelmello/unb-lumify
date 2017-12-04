@@ -79,6 +79,29 @@ input[type=text] {
 	padding-top: 0px;
 }
 
+table {
+	width: 100%;
+	margin-bottom: 20px;
+}
+
+caption {
+	font-size: 1.5em;
+	margin-bottom: 10px;
+}
+
+th {
+	font-size: 1.2em;
+	background-color: #c0c0c0;
+}
+
+tr:nth-child(even) {
+	background-color: #f2f2f2;
+}
+
+tr:hover {
+	background-color: #d0d0d0;
+}
+
 .coluna {
 	background-color: #ffffff;
 	padding: 0px;
@@ -112,6 +135,14 @@ input[type=text] {
 	left: 50%;
 	background-color: #fff;
 	transform: translate(-50%, -50%);
+}
+
+.block {
+	display: block;
+}
+
+.none {
+	display: none;
 }
 
 /* Para Tablet: */
