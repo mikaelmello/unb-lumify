@@ -66,6 +66,11 @@ void Server::start(const std::string& path, uint32_t port) {
         t3.detach();
         this->threads_qty++;
 
+        // Responde por verificacoes de outros peers
+        std::thread t4([this] { this->sync(); });
+        t4.detach();
+        this->threads_qty++;
+
     }
     catch (Socket::ConnectionException& er){
 
@@ -251,50 +256,37 @@ void Server::error(std::shared_ptr<Socket::TCPSocket> client_socket, const std::
 
 void Server::check_live_peers() {
     Socket::UDPSocket discover;
-    discover.set_timeout(5);
+    discover.set_timeout(10);
     discover.bind(UDP_FOUND);
 
     while(!this->is_finished) {
-
-        auto start = std::chrono::system_clock::now();
-
-        barrier_known_peers.lock();
-        known_peers_backup = known_peers;
-        known_peers.clear();
-        barrier_known_peers.unlock();
-
-        try {
-            discover.sendto("255.255.255.255", UDP_DISCOVER, "DISCOVER");
-        }
-        catch (const Socket::ConnectionException& e) {
-            log->error(e.what());
-            log->error("Trying again in 30 seconds");
-        }
 
         try {
             while(!this->is_finished) {
                 Socket::UDPRecv response = discover.recvfrom(256);
                 std::string message = response.get_msg();
                 std::vector<std::string> tokens = Helpers::split(message, ':');
-
                 uint16_t new_peer_id = nickname_to_peer_id[tokens[1]];
 
+                barrier_known_peers.lock();
                 barrier_my_name.lock();
                 if (tokens.size() != 2 || tokens[0] != "FOUND" ||
                     tokens[1].length() <= 0 || tokens[1] == this->my_name) {
                     // if answer received is not the one we want
                     barrier_my_name.unlock();
+                    barrier_known_peers.unlock();
                     continue;
                 }
                 else if (new_peer_id != 0 &&
                     known_peers_backup[new_peer_id].host != response.get_address()) {
                     // if replier answered with a nickname that is not his
                     // send message indicating NICK error
-                    discover.sendto(response.get_address(), UDP_DISCOVER, "FAIL:NICK");
                     barrier_my_name.unlock();
+                    barrier_known_peers.unlock();
                     continue;
                 }
                 barrier_my_name.unlock();
+                barrier_known_peers.unlock();
 
                 if (new_peer_id == 0) {
                     new_peer_id = this->current_id;
@@ -303,23 +295,10 @@ void Server::check_live_peers() {
 
                 Peer new_peer(new_peer_id, tokens[1], response.get_address());
                 add_peer(new_peer);
-                discover.sendto(response.get_address(), UDP_DISCOVER, "SUCCESS");
             }
         }
         catch (const Socket::ConnectionException& e) {
             // stop waiting for new answers
-        }
-
-
-        // pausar ate completar 30 segundos desde o ultimo broadcast
-        // aumenta de 1 em 1 segundo para verificar sempre se a execucao foi
-        // finalizada
-        auto end = std::chrono::system_clock::now();
-        std::chrono::duration<double> elapsed_seconds = end - start;
-        while (!this->is_finished && elapsed_seconds.count() <= 30) {
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-            end = std::chrono::system_clock::now();
-            elapsed_seconds = end - start;
         }
 
     }
@@ -327,10 +306,44 @@ void Server::check_live_peers() {
     this->threads_qty--;
 }
 
+
+void Server::sync() {
+    Socket::UDPSocket discover;
+    discover.set_timeout(10);
+    discover.bind(UDP_SYNC);
+
+    while(!this->is_finished) {
+
+        try {
+            while(!this->is_finished) {
+                Socket::UDPRecv response = discover.recvfrom(8192);
+                std::string message = response.get_msg();
+                log->info("Syncing ayy " + response.get_ip_address());
+                std::vector<std::string> tokens = Helpers::split(message, ':');
+
+                std::string fs_json = tokens[2];
+                for (int i = 3, n = tokens.size() - 1; i < n; i++) {
+                    fs_json += ":" + tokens[i];
+                }
+
+                if (fs_json == file_system.get_json()) continue;
+                //else (file_system.sync(fs_json));
+
+            }
+        }
+        catch (const Socket::ConnectionException& e) {
+            // stop waiting for new answers
+        }
+
+    }
+
+    this->threads_qty--;
+}
+
+
 void Server::recv_discovers() {
     Socket::UDPSocket discover;
-    discover.set_timeout(3);
-    discover.bind(UDP_DISCOVER);
+    std::string naame;
 
     while(!this->is_finished) {
 
@@ -340,24 +353,13 @@ void Server::recv_discovers() {
             std::this_thread::sleep_for(std::chrono::seconds(1));
             continue;
         }
+        naame = this->my_name;
         barrier_my_name.unlock();
 
         try {
-            Socket::UDPRecv response = discover.recvfrom(256);
-            if (response.get_msg() != "DISCOVER") continue;
-
-            barrier_my_name.lock();
-            discover.sendto(response.get_address(), UDP_FOUND,
-                "FOUND:" + this->my_name);
-            barrier_my_name.unlock();
-
-            response = discover.recvfrom(256);
-            std::vector<std::string> tokens = Helpers::split(response.get_msg(), ':');
-            if (tokens[0] == "FAIL") {
-                if (tokens[1] == "NICK") {
-                    // TODO: Enviar aviso ao usuário web dizendo que o nick escolhido nao serve
-                }
-            }
+            discover.sendto("255.255.255.255", UDP_FOUND, "FOUND:" + naame);
+            discover.sendto("255.255.255.255", UDP_SYNC,  "SYNC:" + file_system.get_json() + ":[end]");
+            std::this_thread::sleep_for(std::chrono::seconds(5));
 
         }
         catch (const Socket::ConnectionException& e) {

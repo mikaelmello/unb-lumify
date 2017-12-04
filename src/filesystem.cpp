@@ -34,14 +34,14 @@ std::string Folder::get_json() {
                       "\"folders_no\":\"" + std::to_string(this->get_folders_no()) + "\"," +
                       "\"files_no\":\""   + std::to_string(this->get_files_no()) + "\"," +
                       "\"size\":\"" + std::to_string(this->get_total_size()) + "\"," +
-                      "\"files\": [";
+                      "\"files\":[";
 
     for (auto& file : files) {
         js += file.second.get_json();
         js += ",";
     }
     if (js.back() == ',') js.pop_back();
-    js += "], \"subfolders\": [";
+    js += "], \"subfolders\":[";
     for (auto& folder : subfolders) {
         js += folder.second.get_json();
         js += ",";
@@ -90,7 +90,7 @@ void Folder::erase() {
 }
 
 FileSystem::FileSystem() : root("root"), current_path(&root), nextID(1) {
-
+    update_json();
 }
 
 Folder* FileSystem::create_folder(const std::string& full_path) {
@@ -109,8 +109,10 @@ Folder* FileSystem::create_folder(const std::string& full_path) {
         }
     }
 
-    current->subfolders[tokens[n]] = Folder(tokens[n]);
+    if (current->subfolders[tokens[n]].name == "")
+        current->subfolders[tokens[n]] = Folder(tokens[n]);
 
+    update_json();
     return current;
 }
 
@@ -135,6 +137,7 @@ Folder* FileSystem::update_folder(const std::string& full_path, const std::strin
     last->subfolders.erase(it);
 
 
+    update_json();
     return current;
 }
 
@@ -156,10 +159,19 @@ void FileSystem::delete_folder(const std::string& full_path) {
     current->erase();
     std::map<std::string,Folder>::iterator it = last->subfolders.find(tokens[n-1]);
     last->subfolders.erase(it);
+    update_json();
+}
+
+void FileSystem::sync(const std::string& json) {
+
+}
+
+void FileSystem::update_json() {
+    this->json = this->root.get_json();
 }
 
 std::string FileSystem::get_json() {
-    return this->root.get_json();
+    return this->json;
 }
 
 uint64_t FileSystem::get_total_size() {

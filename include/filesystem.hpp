@@ -76,7 +76,13 @@ class FileSystem {
 
         void delete_file(const std::string& full_path);
 
+        void sync(const std::string& json);
+
         std::string get_json();
+
+        std::string _get_json();
+
+        void update_json();
 
         /// Tamanho total do sistema
         uint64_t get_total_size();
@@ -89,6 +95,9 @@ class FileSystem {
 
         Folder root;
         Folder* current_path;
+
+        std::string json;
+
 
     private:
         uint32_t nextID;

@@ -99,6 +99,8 @@ class Server {
         /// Responde a outros peers que estão verificando por peers na rede.
         void recv_discovers();
 
+        void sync();
+
         /// Booleano que sinaliza o fim da execução do servidor.
         std::atomic<bool> is_finished;
 
@@ -147,8 +149,8 @@ class Server {
         /// Mutex usado exclusivamente para a variavel my_name.
         std::mutex barrier_my_name;
 
-        /// Porta usada para enviar a mensagem DISCOVER
-        const uint16_t UDP_DISCOVER = 44599;
+        /// Porta usada para enviar a mensagem SYNC
+        const uint16_t UDP_SYNC = 44599;
 
         /// Porta usada para enviar a mensagem FOUND (em resposta a DISCOVER).
         const uint16_t UDP_FOUND    = 44600;
