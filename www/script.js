@@ -110,6 +110,7 @@ function update() {
     setInterval(function() {
         server.open("GET", "data.php?data=UPDATE_DATA", true);
         server.send();
+        get_fs();
     }, 5000);
 }
 
@@ -152,7 +153,8 @@ function add_folder() {
     else {
         fullpath = caminho() + fullpath;
         console.log(fullpath);
-        // Escreva o resto aqui
+        create_folder(fullpath);
+        setTimeout(get_fs(), 1000);
     }
 }
 
@@ -178,11 +180,10 @@ function edit_folder(id) {
         window.alert("Digite um nome válido!");
     }
     else {
-        fullpath_edit = caminho() + fullpath_edit;
         fullpath = caminho() + get_json().subfolders[id].name;
-        console.log(fullpath);
-        console.log(fullpath_edit);
-        // Escreva o resto aqui
+        console.log("Editando " + fullpath + " para novo nome " + fullpath_edit);
+        update_folder(fullpath, fullpath_edit);
+        setTimeout(get_fs(), 1000);
     }
 }
 
@@ -204,6 +205,8 @@ function remove_folder(id) {
     var fullpath = caminho() + get_json().subfolders[id].name;
     if(window.confirm("Deseja apagar esta pasta?") == true) {
         console.log(fullpath);
+        delete_folder(fullpath);
+        get_fs();
     }
 }
 
@@ -309,20 +312,12 @@ function add_arquivo(nome, autor, tamanho, par1, par2, funcao) {
     row.insertCell(7).innerHTML = '<a href="javascript:void(0)" onClick="remove_file(' + funcao + ')" class="btnFuncoes"><i class="fa fa-times-circle"></i></a>';
 }
 
-/*function get_fs() {
-    var json = '{  "name":"root",  "folders_no": "2",  "files_no": "4",  "size": "2544",  "files": [    {      "name": "xd.png",      "author": "Fulaninho",      "size": "9213",      "owner1": "Fulaninho",      "owner2": "Joao"    },     {      "name": "abc.txt",      "author": "Fulaninho",      "size": "999",      "owner1": "Fulaninho",      "owner2": "Joao"    }  ],  "subfolders": [    {      "name": "test",      "folders_no": "0",      "files_no": "2",      "size": "1332",      "files": [        {          "name": "dsadd.png",          "author": "Joao",          "size": "9333",          "owner1": "Joao",          "owner2":"Fulaninho"        },         {          "name": "ffaio.txt",          "author": "Joao",          "size": "999",          "owner1": "Joao",          "owner2":"Fulaninho"        }      ],      "subfolders": [        {        }      ]    },    {      "name": "test2",      "folders_no": "0",      "files_no": "0",      "size": "0",      "files": [      ],      "subfolders": [      ]    }  ],  "error": "false"}';
-    parsed = JSON.parse(json);
-    no = 0;
-    preencher_tabela(parsed, 0);
-}*/
-
 function get_fs() {
     var server = configureBrowserRequest(server);
     server.onreadystatechange = function() {
         if(server.readyState == 4 && server.status == 200) {
             parsed = JSON.parse(server.responseText);
-            no = 0;
-            preencher_tabela(parsed);
+            preencher_tabela(get_json());
             console.log(server.responseText);
         }
     }
@@ -334,7 +329,6 @@ function create_folder(fullpath) {
     var server = configureBrowserRequest(server);
     server.onreadystatechange = function() {
         if(server.readyState == 4 && server.status == 200) {
-            var parsed = JSON.parse(server.responseText);
             console.log(server.responseText);
         }
     }
@@ -347,11 +341,21 @@ function update_folder(fullpath, new_name) {
     var server = configureBrowserRequest(server);
     server.onreadystatechange = function() {
         if(server.readyState == 4 && server.status == 200) {
-            var parsed = JSON.parse(server.responseText);
             console.log(server.responseText);
         }
     }
     server.open("GET", "data.php?data=UPDATE_FOLDER&fullpath="+fullpath+"&newname="+new_name, true);
     server.send();    
 
+}
+
+function delete_folder(fullpath) {
+    var server = configureBrowserRequest(server);
+    server.onreadystatechange = function() {
+        if(server.readyState == 4 && server.status == 200) {
+            console.log(server.responseText);
+        }
+    }
+    server.open("GET", "data.php?data=DELETE_FOLDER&fullpath="+fullpath, true);
+    server.send();        
 }

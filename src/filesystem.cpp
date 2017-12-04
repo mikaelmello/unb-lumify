@@ -13,24 +13,28 @@ File::File(const std::string& name, const std::string& author, uint32_t size, ui
 }
 
 std::string File::get_json() {
-    std::string js = "{\"name\":\""   + this->name + "\", \
-                       \"author\":\"" + this->author + "\",\
-                       \"size\":\""   + std::to_string(this->size) + "\",\
-                       \"owner1\":\"" + std::to_string(this->owner_1) + "\",\
-                       \"owner2\":\"" + std::to_string(this->owner_2) + "\"}";
+    std::string js = "{\"name\":\""   + this->name + "\","+
+                      "\"author\":\"" + this->author + "\","+
+                      "\"size\":\""   + std::to_string(this->size) + "\","+
+                      "\"owner1\":\"" + std::to_string(this->owner_1) + "\","+
+                      "\"owner2\":\"" + std::to_string(this->owner_2) + "\"}";
 
     return js;
+}
+
+void File::erase() {
+
 }
 
 Folder::Folder(const std::string& name) : name(name) {
 }
 
 std::string Folder::get_json() {
-    std::string js = "{\"name\":\""   + this->name + "\", \
-                       \"folders_no\":\"" + std::to_string(this->get_folders_no()) + "\",\
-                       \"files_no\":\""   + std::to_string(this->get_files_no()) + "\",\
-                       \"size\":\"" + std::to_string(this->get_total_size()) + "\",\
-                       \"files\": [";
+    std::string js = "{\"name\":\""   + this->name + "\","+
+                      "\"folders_no\":\"" + std::to_string(this->get_folders_no()) + "\"," +
+                      "\"files_no\":\""   + std::to_string(this->get_files_no()) + "\"," +
+                      "\"size\":\"" + std::to_string(this->get_total_size()) + "\"," +
+                      "\"files\": [";
 
     for (auto& file : files) {
         js += file.second.get_json();
@@ -76,6 +80,15 @@ uint32_t Folder::get_folders_no() {
     return no;
 }
 
+void Folder::erase() {
+    for (auto& file : files) {
+        file.second.erase();
+    }
+    for (auto& folder : subfolders) {
+        folder.second.erase();
+    }    
+}
+
 FileSystem::FileSystem() : root("root"), current_path(&root), nextID(1) {
 
 }
@@ -110,16 +123,39 @@ Folder* FileSystem::update_folder(const std::string& full_path, const std::strin
     int n = tokens.size();
     for (int i = 1; i < n; i++) {
         last = current;
-        current = &current->subfolders[tokens[i]];
+        current = &last->subfolders[tokens[i]];
         if (current->name == "") {
             last->subfolders.erase(tokens[i]);
             throw std::invalid_argument("INVALID_PATH");
         }
     }
-
     current->name = new_name;
+    last->subfolders[new_name] = *current;
+    std::map<std::string,Folder>::iterator it = last->subfolders.find(tokens[n-1]);
+    last->subfolders.erase(it);
+
 
     return current;
+}
+
+void FileSystem::delete_folder(const std::string& full_path) {
+    std::vector<std::string> tokens = Helpers::split(full_path, '/');
+    if (tokens[0] != "root") throw std::invalid_argument("INVALID_PATH");
+
+    Folder* last = NULL;
+    Folder* current = &root;
+    int n = tokens.size();
+    for (int i = 1; i < n; i++) {
+        last = current;
+        current = &last->subfolders[tokens[i]];
+        if (current->name == "") {
+            last->subfolders.erase(tokens[i]);
+            throw std::invalid_argument("INVALID_PATH");
+        }
+    }
+    current->erase();
+    std::map<std::string,Folder>::iterator it = last->subfolders.find(tokens[n-1]);
+    last->subfolders.erase(it);
 }
 
 std::string FileSystem::get_json() {
@@ -127,13 +163,13 @@ std::string FileSystem::get_json() {
 }
 
 uint64_t FileSystem::get_total_size() {
-    return root.get_total_size();
+    return this->root.get_total_size();
 }
 
 uint32_t FileSystem::get_files_no() {
-    return root.get_files_no();
+    return this->root.get_files_no();
 }
 
 uint32_t FileSystem::get_folders_no() {
-    return root.get_folders_no();
+    return this->root.get_folders_no();
 }

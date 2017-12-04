@@ -31,6 +31,10 @@ switch($_GET["data"]) {
         break;
     case "UPDATE_FOLDER":
         echo send_msg("UPDATE_FOLDER:" . $_GET["fullpath"] . ":" . $_GET["newname"]);
+        break;
+    case "DELETE_FOLDER":
+        echo send_msg("DELETE_FOLDER:" . $_GET["fullpath"]);
+        break;
 }
 
 

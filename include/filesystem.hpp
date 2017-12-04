@@ -20,6 +20,8 @@ class File {
         uint16_t owner_2;
         uint32_t size;
 
+        void erase();
+
         std::string get_json();
 };
 
@@ -39,6 +41,8 @@ class Folder {
 
         /// Numero de pastas no diretorio
         uint32_t get_folders_no();
+
+        void erase();
 
         std::string get_json();
 

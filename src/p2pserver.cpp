@@ -154,7 +154,7 @@ void Server::handle_request(std::shared_ptr<Socket::TCPSocket> client_socket) {
 void Server::handle_fs(std::shared_ptr<Socket::TCPSocket> client_socket, std::vector<std::string> tokens) {
     try {
         if (tokens[1] == "CREATE_FOLDER") file_system.create_folder(tokens[2]);
-        else if (tokens[1] == "DELETE_FOLDER") ;//file_system.delete_folder(tokens[2]);
+        else if (tokens[1] == "DELETE_FOLDER") file_system.delete_folder(tokens[2]);
         else if (tokens[1] == "UPDATE_FOLDER") file_system.update_folder(tokens[2], tokens[3]);
 
         else if (tokens[1] == "CREATE_FILE") ;// file_system.create_file();
@@ -224,7 +224,6 @@ void Server::handle_php(std::shared_ptr<Socket::TCPSocket> client_socket, std::v
             barrier_my_name.lock();
             barrier_known_peers.lock();
             for (auto peer : known_peers) {
-                if (peer.second.name == this->my_name) continue;
                 Socket::TCPSocket fs_update;
                 fs_update.connect(peer.second.host, this->port);
                 std::string message = "FS";
@@ -280,9 +279,11 @@ void Server::check_live_peers() {
 
                 uint16_t new_peer_id = nickname_to_peer_id[tokens[1]];
 
+                barrier_my_name.lock();
                 if (tokens.size() != 2 || tokens[0] != "FOUND" ||
-                    tokens[1].length() <= 0) {
+                    tokens[1].length() <= 0 || tokens[1] == this->my_name) {
                     // if answer received is not the one we want
+                    barrier_my_name.unlock();
                     continue;
                 }
                 else if (new_peer_id != 0 &&
@@ -290,8 +291,10 @@ void Server::check_live_peers() {
                     // if replier answered with a nickname that is not his
                     // send message indicating NICK error
                     discover.sendto(response.get_address(), UDP_DISCOVER, "FAIL:NICK");
+                    barrier_my_name.unlock();
                     continue;
                 }
+                barrier_my_name.unlock();
 
                 if (new_peer_id == 0) {
                     new_peer_id = this->current_id;
