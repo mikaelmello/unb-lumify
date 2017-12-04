@@ -137,10 +137,59 @@ function navegar(funcao) {
     }
 }
 
+function download(file) {
+    var fullpath = caminho() + get_json().files[file].name;
+    if(window.confirm("Deseja baixar o arquivo?") == true) {
+        console.log(fullpath);
+    }
+}
+
+function add_folder() {
+    var fullpath = prompt("Digite o nome da pasta:", "Nome");
+    if(fullpath == null || fullpath == "") {
+        window.alert("Digite um nome válido!");
+    }
+    else {
+        fullpath = caminho() + fullpath;
+        console.log(fullpath);
+        // Escreva o resto aqui
+    }
+}
+
+function add_file() {
+    var x = document.getElementById("file_submit");
+
+    if (x.className.indexOf("block") == -1) {
+        x.className += "block";
+        x.className = x.className.replace("none", "");
+    }
+    else {
+        x.className += "none";
+        x.className = x.className.replace("block", "");
+    }
+
+    var fullpath = caminho();
+    console.log(fullpath);
+}
+
+function remove_folder(id) {
+    var fullpath = caminho() + get_json().subfolders[id].name;
+    if(window.confirm("Deseja apagar esta pasta?") == true) {
+        console.log(fullpath);
+    }
+}
+
+function remove_file(id) {
+    var fullpath = caminho() + get_json().files[id].name;
+    if(window.confirm("Deseja apagar este arquivo?") == true) {
+        console.log(fullpath);
+    }
+}
+
 function preencher_tabela(parse) {
     caminho[no] = parse.name;
 
-    caminho();
+    document.getElementById("caminho").innerHTML = caminho();
     delete_rows();
 
     if(parse.folders_no == 0) {
@@ -148,7 +197,7 @@ function preencher_tabela(parse) {
         obj.insertCell(0).id = "diretorio_vazio";
         obj = document.getElementById("diretorio_vazio")
         obj.innerHTML = "Não há nada para mostrar!";
-        obj.setAttribute("colspan", 5);
+        obj.setAttribute("colspan", 7);
     }
     else {
         var obj = parse.subfolders;
@@ -163,12 +212,12 @@ function preencher_tabela(parse) {
         obj.insertCell(0).id = "arquivos_vazio";
         obj = document.getElementById("arquivos_vazio")
         obj.innerHTML = "Não há nada para mostrar!";
-        obj.setAttribute("colspan", 5);
+        obj.setAttribute("colspan", 7);
     }
     else {
         obj = parse.files;
         for(var i = obj.length - 1; i >= 0; i--) {
-            add_arquivo(obj[i].name, obj[i].author, obj[i].size, obj[i].owner1, obj[i].owner2);
+            add_arquivo(obj[i].name, obj[i].author, obj[i].size, obj[i].owner1, obj[i].owner2, i);
         }
     }
 }
@@ -178,7 +227,7 @@ function caminho() {
     for(var i = 0; i <= no; i++) {
         str += caminho[i] + "/";
     }
-    document.getElementById("caminho").innerHTML = str;
+    return str;
 }
 
 function delete_rows() {
@@ -195,28 +244,44 @@ function delete_rows() {
     }
 }
 
-function add_diretorio(nome, pasta, arquivo, tamanho, tipo, funcao) {
+function add_diretorio(nome, pasta, arquivo, tamanho, tipo, file) {
     var row = document.getElementById("diretorios").insertRow(1);
-    row.setAttribute("onClick", "navegar(" + funcao + ");");
+    if(file != -1) {
+        
+    }
+    else {
+        row.insertCell(0);
+    }
     row.insertCell(0).innerHTML = nome;
     row.insertCell(1).innerHTML = pasta;
     row.insertCell(2).innerHTML = arquivo;
     row.insertCell(3).innerHTML = tamanho + " Bytes";
     row.insertCell(4).innerHTML = tipo;
+    if(file != -1) {
+        row.insertCell(5).innerHTML = '<a href="javascript:void(0)" onClick="navegar(' + file + ')" class="btnFuncoes"><i class="fa fa-mail-forward"></i></a>';
+        row.insertCell(6).innerHTML = '<a href="javascript:void(0)" onClick="remove_folder(' + file + ')" class="btnFuncoes"><i class="fa fa-times-circle"></i></a>';
+    }
+    else {
+        row.insertCell(5);
+        row.insertCell(6);
+    }
 }
 
-function add_arquivo(nome, autor, tamanho, par1, par2) {
+function add_arquivo(nome, autor, tamanho, par1, par2, funcao) {
     var row = document.getElementById("arquivos").insertRow(1);
     row.insertCell(0).innerHTML = nome;
     row.insertCell(1).innerHTML = autor;
     row.insertCell(2).innerHTML = tamanho + " Bytes";
     row.insertCell(3).innerHTML = par1;
     row.insertCell(4).innerHTML = par2;
+    row.insertCell(5).innerHTML = '<a href="javascript:void(0)" onClick="download(' + funcao + ')" class="btnFuncoes"><i class="fa fa-download"></i></a>';
+    row.insertCell(6).innerHTML = '<a href="javascript:void(0)" onClick="remove_file(' + funcao + ')" class="btnFuncoes"><i class="fa fa-times-circle"></i></a>';
 }
 
 /*function get_fs() {
     var json = '{  "name":"root",  "folders_no": "2",  "files_no": "4",  "size": "2544",  "files": [    {      "name": "xd.png",      "author": "Fulaninho",      "size": "9213",      "owner1": "Fulaninho",      "owner2": "Joao"    },     {      "name": "abc.txt",      "author": "Fulaninho",      "size": "999",      "owner1": "Fulaninho",      "owner2": "Joao"    }  ],  "subfolders": [    {      "name": "test",      "folders_no": "0",      "files_no": "2",      "size": "1332",      "files": [        {          "name": "dsadd.png",          "author": "Joao",          "size": "9333",          "owner1": "Joao",          "owner2":"Fulaninho"        },         {          "name": "ffaio.txt",          "author": "Joao",          "size": "999",          "owner1": "Joao",          "owner2":"Fulaninho"        }      ],      "subfolders": [        {        }      ]    },    {      "name": "test2",      "folders_no": "0",      "files_no": "0",      "size": "0",      "files": [      ],      "subfolders": [      ]    }  ],  "error": "false"}';
     parsed = JSON.parse(json);
+    no = 0;
     preencher_tabela(parsed, 0);
 }*/
 

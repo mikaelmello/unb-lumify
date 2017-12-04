@@ -33,6 +33,7 @@
 	    	update();
 	    	update_span("nickname", username);
 	    	update_nick();
+	    	arquivos();
 	    }
 	</script>
 <body>
@@ -85,22 +86,37 @@
 			<p>Caminho: <span id="caminho"></span></p>
 			<table id="diretorios">
 				<caption>Diretórios</caption>
+				<caption class="funcoes">
+					<a href="javascript:void(0)" onClick="navegar(-1)" class="btnFuncoes"><i class="fa fa-mail-reply"></i> Voltar </a>
+					<a href="javascript:void(0)" onClick="add_folder()" class="btnFuncoes"><i class="fa fa-plus-circle"></i> Adicionar Pasta</a>
+				</caption>
 				<tr>
 					<th>Nome</th>
 					<th>Pastas</th>
 					<th>Arquivos</th>
 					<th>Tamanho</th>
 					<th>Tipo</th>
+					<th><i class="fa fa-mail-forward"></i></th>
+					<th><i class="fa fa-times-circle"></i></th>
 				</tr>
 			</table>
 			<table id="arquivos">
 				<caption>Arquivos</caption>
+				<caption class="funcoes">
+					<a href="javascript:void(0)" onClick="add_file()" class="btnFuncoes"><i class="fa fa-plus-circle"></i> Adicionar Arquivo</a>
+					<form class="none" id="file_submit">
+						<input type="file" name="file">
+						<input type="submit" name="enviar">
+					</form>
+				</caption>
 				<tr>
 					<th>Nome</th>
 					<th>Autor</th>
 					<th>Tamanho</th>
 					<th>Par 1</th>
 					<th>Par 2</th>
+					<th><i class="fa fa-download"></i></th>
+					<th><i class="fa fa-times-circle"></i></th>
 				</tr>
 			</table>
 		</div>
