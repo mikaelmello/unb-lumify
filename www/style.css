@@ -102,6 +102,14 @@ tr:hover {
 	background-color: #d0d0d0;
 }
 
+td:nth-child(6) {
+	text-align: center;
+}
+
+td:nth-child(7) {
+	text-align: center;
+}
+
 .coluna {
 	background-color: #ffffff;
 	padding: 0px;
@@ -143,6 +151,23 @@ tr:hover {
 
 .none {
 	display: none;
+}
+
+.funcoes {
+	text-align: left;
+	font-size: 1em;
+}
+
+.btnFuncoes:link {
+	color: #000;
+}
+
+.btnFuncoes:visited {
+	color: #000;
+}
+
+.btnFuncoes:hover {
+	color: #2d2d2d;
 }
 
 /* Para Tablet: */
