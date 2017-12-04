@@ -97,6 +97,7 @@
 					<th>Tamanho</th>
 					<th>Tipo</th>
 					<th><i class="fa fa-mail-forward"></i></th>
+					<th><i class="fa fa-edit"></i></th>
 					<th><i class="fa fa-times-circle"></i></th>
 				</tr>
 			</table>
@@ -116,6 +117,7 @@
 					<th>Par 1</th>
 					<th>Par 2</th>
 					<th><i class="fa fa-download"></i></th>
+					<th><i class="fa fa-edit"></i></th>
 					<th><i class="fa fa-times-circle"></i></th>
 				</tr>
 			</table>

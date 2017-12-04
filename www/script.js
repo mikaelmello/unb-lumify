@@ -172,6 +172,34 @@ function add_file() {
     console.log(fullpath);
 }
 
+function edit_folder(id) {
+    var fullpath_edit = prompt("Digite o novo nome da pasta:", get_json().subfolders[id].name);
+    if(fullpath_edit == null || fullpath_edit == "") {
+        window.alert("Digite um nome válido!");
+    }
+    else {
+        fullpath_edit = caminho() + fullpath_edit;
+        fullpath = caminho() + get_json().subfolders[id].name;
+        console.log(fullpath);
+        console.log(fullpath_edit);
+        // Escreva o resto aqui
+    }
+}
+
+function edit_file(id) {
+    var fullpath_edit = prompt("Digite o novo nome do arquivo:", get_json().files[id].name);
+    if(fullpath_edit == null || fullpath_edit == "") {
+        window.alert("Digite um nome válido!");
+    }
+    else {
+        fullpath_edit = caminho() + fullpath_edit;
+        fullpath = caminho() + get_json().files[id].name;
+        console.log(fullpath);
+        console.log(fullpath_edit);
+        // Escreva o resto aqui
+    }
+}
+
 function remove_folder(id) {
     var fullpath = caminho() + get_json().subfolders[id].name;
     if(window.confirm("Deseja apagar esta pasta?") == true) {
@@ -259,11 +287,13 @@ function add_diretorio(nome, pasta, arquivo, tamanho, tipo, file) {
     row.insertCell(4).innerHTML = tipo;
     if(file != -1) {
         row.insertCell(5).innerHTML = '<a href="javascript:void(0)" onClick="navegar(' + file + ')" class="btnFuncoes"><i class="fa fa-mail-forward"></i></a>';
-        row.insertCell(6).innerHTML = '<a href="javascript:void(0)" onClick="remove_folder(' + file + ')" class="btnFuncoes"><i class="fa fa-times-circle"></i></a>';
+        row.insertCell(6).innerHTML = '<a href="javascript:void(0)" onClick="edit_folder(' + file + ')" class="btnFuncoes"><i class="fa fa-edit"></i></a>';
+        row.insertCell(7).innerHTML = '<a href="javascript:void(0)" onClick="remove_folder(' + file + ')" class="btnFuncoes"><i class="fa fa-times-circle"></i></a>';
     }
     else {
         row.insertCell(5);
         row.insertCell(6);
+        row.insertCell(7);
     }
 }
 
@@ -275,7 +305,8 @@ function add_arquivo(nome, autor, tamanho, par1, par2, funcao) {
     row.insertCell(3).innerHTML = par1;
     row.insertCell(4).innerHTML = par2;
     row.insertCell(5).innerHTML = '<a href="javascript:void(0)" onClick="download(' + funcao + ')" class="btnFuncoes"><i class="fa fa-download"></i></a>';
-    row.insertCell(6).innerHTML = '<a href="javascript:void(0)" onClick="remove_file(' + funcao + ')" class="btnFuncoes"><i class="fa fa-times-circle"></i></a>';
+    row.insertCell(6).innerHTML = '<a href="javascript:void(0)" onClick="edit_file(' + funcao + ')" class="btnFuncoes"><i class="fa fa-edit"></i></a>';
+    row.insertCell(7).innerHTML = '<a href="javascript:void(0)" onClick="remove_file(' + funcao + ')" class="btnFuncoes"><i class="fa fa-times-circle"></i></a>';
 }
 
 /*function get_fs() {
