@@ -14,9 +14,10 @@ Sistema de Arquivos Distribuído desenvolvido para a disciplina Redes de Computa
 Seu computador deve ter `php-cgi` instalado para o funcionamento correto do servidor web.
 
 ```bash
-$ git clone https://github.com/mikaelmello/lumify
+$ git clone https://github.com/MikaelMello/lumify.git
 $ cd lumify
 $ mkdir obj
+$ mkdir files
 $ make
 $ ./lumify
 ```
