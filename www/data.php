@@ -26,6 +26,9 @@ switch($_GET["data"]) {
     case "GET_FS":
         echo send_msg("GET_FS");
         break;
+    case "GET_PEERS":
+        echo send_msg("GET_PEERS");
+        break;
     case "CREATE_FOLDER":
         echo send_msg("CREATE_FOLDER:" . $_GET["fullpath"]);
         break;
