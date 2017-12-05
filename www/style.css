@@ -47,7 +47,7 @@ a:visited {
 
 a:hover {
     text-decoration: none;
-	color: #fff;
+	color: #f0f0f0;
 }
 
 a:active {
@@ -79,6 +79,14 @@ input[type=text] {
 	padding-top: 0px;
 }
 
+.tabelas {
+	padding: 10px 10px;
+}
+
+.tabelas p, .tabelas h2 {
+	margin: 0px;
+}
+
 table {
 	width: 100%;
 	margin-bottom: 20px;
@@ -91,15 +99,19 @@ caption {
 
 th {
 	font-size: 1.2em;
-	background-color: #c0c0c0;
+	background-color: #006060;
 }
 
 tr:nth-child(even) {
-	background-color: #f2f2f2;
+	background-color: #007070;
+}
+
+tr:nth-child(odd) {
+	background-color: #008585;
 }
 
 tr:hover {
-	background-color: #d0d0d0;
+	background-color: #006060;
 }
 
 td:nth-child(6) {
@@ -163,15 +175,51 @@ td:nth-child(8) {
 }
 
 .btnFuncoes:link {
-	color: #000;
+	color: #181818;
 }
 
 .btnFuncoes:visited {
-	color: #000;
+	color: #181818;
 }
 
 .btnFuncoes:hover {
-	color: #2d2d2d;
+	color: #000;
+}
+
+.apagar:link {
+	color: #b22222;
+}
+
+.apagar:visited {
+	color: #b22222;
+}
+
+.apagar:hover {
+	color: #8b0000;
+}
+
+.editar:link {
+	color: #00007b;
+}
+
+.editar:visited {
+	color: #00007b;
+}
+
+.editar:hover {
+	color: #00004b;
+}
+
+.especial:link {
+	color: #A9A9A9;
+}
+
+.especial:visited {
+	color: #A9A9A9;
+}
+
+.especial:hover {
+	color: #808080;
 }
 
 /* Para Tablet: */
