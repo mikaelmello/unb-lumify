@@ -134,9 +134,9 @@ std::string Server::get_peers() {
     std::string msg = "{\"erro\":\"false\",\"peers\":[";
     barrier_known_peers.lock();
     for (auto peer: known_peers) {
-        msg += "{\"host\":\"" + peer.second.host + "\",\"name\":\"" + peer.second.name + "\"}";
-        std::cout << peer.second.name << " " << peer.second.host << std::endl;
+        msg += "{\"host\":\"" + peer.second.host + "\",\"name\":\"" + peer.second.name + "\"},";
     }
+    if (msg.back() == ',') msg.pop_back();
     barrier_known_peers.unlock();
     msg += "]}";
     return msg;
