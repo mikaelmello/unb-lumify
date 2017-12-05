@@ -62,6 +62,24 @@ function arquivos() {
     get_fs();
 }
 
+function peers() {
+    var x = document.getElementById("usuarios");
+
+    if (x.className.indexOf("block") == -1) {
+        x.className += " block";
+        x.className = x.className.replace(" none", "");
+    }
+
+    var x = document.getElementById("pastas");
+
+    if (x.className.indexOf("none") == -1) {
+        x.className += " none";
+        x.className = x.className.replace(" block", "");
+    }
+
+    get_peers();
+}
+
 function login() {
     username = document.forms["login"]["user"].value;
     if (username != "") {
@@ -156,6 +174,7 @@ function update() {
         server.open("GET", "data.php?data=UPDATE_DATA", true);
         server.send();
         get_fs();
+        get_peers();
     }, 5000);
 }
 
@@ -298,7 +317,8 @@ function preencher_tabela(parse) {
     caminho[no] = parse.name;
 
     document.getElementById("caminho").innerHTML = caminho();
-    delete_rows();
+    delete_rows("diretorios");
+    delete_rows("arquivos");
 
     if(parse.folders_no == 0) {
         var obj = document.getElementById("diretorios").insertRow(1);
@@ -330,6 +350,15 @@ function preencher_tabela(parse) {
     }
 }
 
+function preencher_peers(parse) {
+    delete_rows("users");
+
+    var obj = parse.peers;
+    for(var i = obj.length - 1; i >= 0; i--) {
+        add_peer(obj[i].name, obj[i].host);
+    }
+}
+
 function caminho() {
     var str = "";
     for(var i = 0; i <= no; i++) {
@@ -339,15 +368,9 @@ function caminho() {
     return str;
 }
 
-function delete_rows() {
-    var table = document.getElementById("diretorios");
+function delete_rows(id) {
+    var table = document.getElementById(id);
     var rows = table.rows.length - 1;
-    for (var i = 0; i < rows; i++) {
-        table.deleteRow(1);
-    }
-
-    table = document.getElementById("arquivos");
-    rows = table.rows.length - 1;
     for (var i = 0; i < rows; i++) {
         table.deleteRow(1);
     }
@@ -384,6 +407,12 @@ function add_arquivo(nome, autor, tamanho, par1, par2, funcao) {
     row.insertCell(7).innerHTML = '<a href="javascript:void(0)" onClick="remove_file(' + funcao + ')" class="apagar"><i class="fa fa-times-circle"></i></a>';
 }
 
+function add_peer(nome, host) {
+    var row = document.getElementById("users").insertRow(1);
+    row.insertCell(0).innerHTML = nome;
+    row.insertCell(1).innerHTML = host;
+}
+
 function get_fs() {
     var server = configureBrowserRequest(server);
     server.onreadystatechange = function() {
@@ -402,7 +431,8 @@ function get_peers() {
     var server = configureBrowserRequest(server);
     server.onreadystatechange = function() {
         if(server.readyState == 4 && server.status == 200) {
-            parsed = JSON.parse(server.responseText);
+            var parsed = JSON.parse(server.responseText);
+            preencher_peers(parsed);
             console.log(server.responseText);
         }
     }
