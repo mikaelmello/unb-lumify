@@ -5,7 +5,6 @@ Sistema de Arquivos Distribuído desenvolvido para a disciplina Redes de Computa
 ---
 
 ## Membros
- * Fillype Nascimento
  * Luan Pignata
  * Mikael Mello
 
