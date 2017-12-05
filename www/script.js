@@ -91,18 +91,32 @@ function update_nick() {
     server.send();
 }
 
+function aviso(users_qty) {
+    var x = document.getElementById("aviso");
+    if(users_qty < 3) {
+        if (x.className.indexOf("block") == -1) {
+            x.className += " block";
+            x.className = x.className.replace(" none", "");
+        }
+    }
+    else {
+        if (x.className.indexOf("none") == -1) {
+            x.className += " none";
+            x.className = x.className.replace(" block", "");
+        }
+    }
+}
+
 function update() {
     var server = configureBrowserRequest(server);
     server.onreadystatechange = function() {
         if(server.readyState == 4 && server.status == 200) {
             var parsed = JSON.parse(server.responseText);
             update_span("usersqty", parsed["users_qty"]);
-            update_span("current_subfolders", parsed["cur_folders_qty"]);
-            update_span("current_files", parsed["cur_files_qty"]);
-            update_span("current_size", parsed["cur_total_size"]);
             update_span("subfolders", parsed["total_folders_qty"]);
             update_span("files", parsed["total_files_qty"]);
             update_span("size", parsed["total_size"]);
+            aviso(parsed["users_qty"]);
         }
     }
     server.open("GET", "data.php?data=UPDATE_DATA", true);
@@ -136,6 +150,7 @@ function navegar(funcao) {
         var parse = get_json();
         preencher_tabela(parse);
     }
+    folders();
 }
 
 function download_file(file) {
@@ -315,9 +330,9 @@ function add_diretorio(nome, pasta, arquivo, tamanho, tipo, file) {
     row.insertCell(3).innerHTML = tamanho + " Bytes";
     row.insertCell(4).innerHTML = tipo;
     if(file != -1) {
-        row.insertCell(5).innerHTML = '<a href="javascript:void(0)" onClick="navegar(' + file + ')" class="btnFuncoes"><i class="fa fa-mail-forward"></i></a>';
-        row.insertCell(6).innerHTML = '<a href="javascript:void(0)" onClick="edit_folder(' + file + ')" class="btnFuncoes"><i class="fa fa-edit"></i></a>';
-        row.insertCell(7).innerHTML = '<a href="javascript:void(0)" onClick="remove_folder(' + file + ')" class="btnFuncoes"><i class="fa fa-times-circle"></i></a>';
+        row.insertCell(5).innerHTML = '<a href="javascript:void(0)" onClick="navegar(' + file + ')" class="especial"><i class="fa fa-mail-forward"></i></a>';
+        row.insertCell(6).innerHTML = '<a href="javascript:void(0)" onClick="edit_folder(' + file + ')" class="editar"><i class="fa fa-edit"></i></a>';
+        row.insertCell(7).innerHTML = '<a href="javascript:void(0)" onClick="remove_folder(' + file + ')" class="apagar"><i class="fa fa-times-circle"></i></a>';
     }
     else {
         row.insertCell(5);
@@ -333,9 +348,9 @@ function add_arquivo(nome, autor, tamanho, par1, par2, funcao) {
     row.insertCell(2).innerHTML = tamanho + " Bytes";
     row.insertCell(3).innerHTML = par1;
     row.insertCell(4).innerHTML = par2;
-    row.insertCell(5).innerHTML = '<a href="javascript:void(0)" onClick="download_file(' + funcao + ')" class="btnFuncoes"><i class="fa fa-download"></i></a>';
-    row.insertCell(6).innerHTML = '<a href="javascript:void(0)" onClick="edit_file(' + funcao + ')" class="btnFuncoes"><i class="fa fa-edit"></i></a>';
-    row.insertCell(7).innerHTML = '<a href="javascript:void(0)" onClick="remove_file(' + funcao + ')" class="btnFuncoes"><i class="fa fa-times-circle"></i></a>';
+    row.insertCell(5).innerHTML = '<a href="javascript:void(0)" onClick="download_file(' + funcao + ')" class="especial"><i class="fa fa-download"></i></a>';
+    row.insertCell(6).innerHTML = '<a href="javascript:void(0)" onClick="edit_file(' + funcao + ')" class="editar"><i class="fa fa-edit"></i></a>';
+    row.insertCell(7).innerHTML = '<a href="javascript:void(0)" onClick="remove_file(' + funcao + ')" class="apagar"><i class="fa fa-times-circle"></i></a>';
 }
 
 function get_fs() {
@@ -343,12 +358,20 @@ function get_fs() {
     server.onreadystatechange = function() {
         if(server.readyState == 4 && server.status == 200) {
             parsed = JSON.parse(server.responseText);
+            folders();
             preencher_tabela(get_json());
             console.log(server.responseText);
         }
     }
     server.open("GET", "data.php?data=GET_FS", true);
     server.send();
+}
+
+function folders() {
+    var json = get_json();
+    update_span("current_subfolders", json["folders_no"]);
+    update_span("current_files", json["files_no"]);
+    update_span("current_size", json["size"]);
 }
 
 function create_folder(fullpath) {
