@@ -14,7 +14,7 @@ File::File(const std::string& name, const std::string& author, uint32_t size, ui
     size(size), owner_1(owner_1), owner_2(owner_2), id(id) {
 }
 
-File::File() : id(0) {}
+File::File() : id(0), size(0) {}
 
 std::string File::get_json() {
     std::string js = "{\"name\":\""   + this->name + "\","+
@@ -230,13 +230,16 @@ File* FileSystem::update_file(const std::string& full_path, const std::string& n
     Folder* current = retrieve_folder(folder_path);
     File* file = &current->files[filename];
     if (file->id == 0) {
-        current->files[filename].erase();
+        current->files.erase(filename);
         throw std::invalid_argument("File not found");
     }
     else {
         if (new_name    != "") file->name = new_name;
         if (new_owner_1 != "") file->owner_1 = new_owner_1;
         if (new_owner_2 != "") file->owner_2 = new_owner_2;
+        current->files[new_name] = current->files[filename];
+        current->files.erase(filename);
+
     }
     update_json();
     return file;
@@ -252,7 +255,7 @@ std::pair<std::string, std::string> FileSystem::get_file_owners(std::string full
     Folder* current = retrieve_folder(folder_path);
     File* file = &current->files[filename];
     if (file->id == 0) {
-        current->files[filename].erase();
+        current->files.erase(filename);
         throw std::invalid_argument("File not found");
     }
 
@@ -270,7 +273,7 @@ File* FileSystem::retrieve_file(const std::string& full_path) {
     Folder* current = retrieve_folder(folder_path);
     File* file = &current->files[filename];
     if (file->id == 0) {
-        current->files[filename].erase();
+        current->files.erase(filename);
         throw std::invalid_argument("File not found");
     }
 
@@ -287,28 +290,31 @@ File* FileSystem::retrieve_file(const std::string& full_path, const std::string&
     Folder* current = retrieve_folder(folder_path);
     File* file = &current->files[filename];
     if (file->id == 0) {
-        current->files[filename].erase();
+        current->files.erase(filename);
         throw std::invalid_argument("File not found");
     }
 
     int cp = system(("cp ./files/" + std::to_string(file->id) + " ./get-files-here/" + file->name).c_str());
     if (cp > 0) {
+        std::cout << ("Arquivo nao eh nosso") << std::endl;
         Socket::TCPSocket getfile;
         getfile.connect(host1, 44777);
         getfile.send("FS:GET_FILE:"+full_path+":[end]");
+        std::cout << ("Enviado") << std::endl;
         uint64_t received = 0;
         uint8_t max_buffer[file->size + 10];
         while (received < file->size) {
-            uint64_t received_now;
+            uint64_t received_now = file->size - received;
             uint8_t* buffer = getfile.recv(&received_now);
             memcpy(max_buffer + received, buffer, received_now);
             received += received_now;
             free(buffer);
         }
+        std::cout << ("Recebido") << std::endl;
 
-        std::ofstream output_file("./get-files-here/" + filename,
-         std::ofstream::ate | std::fstream::binary);
+        std::ofstream output_file("./get-files-here/" + filename, std::fstream::binary);
         output_file.write((char*) max_buffer, sizeof(uint8_t) * received);
+        std::cout << ("Salvo") << std::endl;
     }
 
     return file;    

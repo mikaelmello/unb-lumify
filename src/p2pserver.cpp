@@ -212,8 +212,10 @@ void Server::handle_fs(std::shared_ptr<Socket::TCPSocket> client_socket, std::ve
         else if (tokens[1] == "DOWNLOAD_FILE") {
             std::pair<std::string, std::string> owners = file_system.get_file_owners(tokens[2]);
             barrier_known_peers.lock();
-            std::string host1 = known_peers[nickname_to_peer_id[owners.first]].host;
-            std::string host2 = known_peers[nickname_to_peer_id[owners.second]].host;
+            std::string host1 = "";
+            std::string host2 = "";
+            if (owners.first  != "None") host1 = known_peers[nickname_to_peer_id[owners.first]].host;
+            if (owners.second != "None") host2 = known_peers[nickname_to_peer_id[owners.second]].host;
             barrier_known_peers.unlock();
             file_system.retrieve_file(tokens[2], host1, host2);
         }
@@ -228,14 +230,16 @@ void Server::handle_fs(std::shared_ptr<Socket::TCPSocket> client_socket, std::ve
             in_file.close();
 
             // Abre novamente o arquivo, inicia um buffer com o tamanho necessário na memória
-            in_file.open("./files/" + std::to_string(file->id), 
-                std::ifstream::ate | std::ifstream::binary);
+            in_file.open("./files/" + std::to_string(file->id), std::ifstream::binary);
 
-            uint8_t buffer[file_size];
+            uint8_t buffer[file_size+1];
 
             in_file.read((char *) buffer, file_size);
+            buffer[file_size] = '\0';
+            printf("kkkk %s\n", buffer);
 
             client_socket->send(buffer, file_size);
+            log->info("FILE ENVIADO UHU " + tokens[2]);
         }
     }
     catch (std::invalid_argument& e) {

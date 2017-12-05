@@ -12,7 +12,7 @@
 struct Peer {
     Peer(uint16_t id, std::string name, std::string host) :
         id(id), name(name), host(host) {}
-    Peer() : id(0) {}
+    Peer() : id(0), name("None") {}
 
     /// ID do peer especificamente neste nó da rede.
     uint16_t id;
