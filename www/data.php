@@ -35,6 +35,16 @@ switch($_GET["data"]) {
     case "DELETE_FOLDER":
         echo send_msg("DELETE_FOLDER:" . $_GET["fullpath"]);
         break;
+    case "CREATE_FILE":
+        send_msg("CREATE_FILE:" . $_GET["fullpath"] . ":" . $_GET["file"]);
+        close();
+        break;
+}
+
+function close() {
+    echo  "<script type='text/javascript'>";
+    echo "window.close();";
+    echo "</script>";
 }
 
 

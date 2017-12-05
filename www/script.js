@@ -258,6 +258,7 @@ function caminho() {
     for(var i = 0; i <= no; i++) {
         str += caminho[i] + "/";
     }
+    document.getElementById("fullpathlol").setAttribute("value", str);
     return str;
 }
 

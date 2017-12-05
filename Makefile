@@ -12,7 +12,10 @@ RM       = rm -f
 
 .PHONY: all all-before all-after clean clean-custom
 
-all: $(BIN) all-after
+all: all-before $(BIN) all-after
+
+all-before: 
+	mkdir -p obj files add-files-here get-files-here
 
 clean: clean-custom
 	${RM} $(OBJ) $(BIN)

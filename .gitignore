@@ -13,3 +13,7 @@ obj/
 /testing/server
 /testing/clientudp
 /testing/serverudp
+
+files/
+add-files-here/
+get-files-here/

@@ -8,16 +8,18 @@
 #include <string>
 #include <map>
 #include <set>
+#include <atomic>
 
 class File {
     public:
         File(const std::string& name, const std::string& author, uint32_t size, uint32_t id,
-            uint16_t owner_1, uint16_t owner_2 = 0);
+            std::string owner_1, std::string owner_2);
+        File();
         std::string name;
         std::string author;
         uint32_t id;
-        uint16_t owner_1;
-        uint16_t owner_2;
+        std::string owner_1;
+        std::string owner_2;
         uint32_t size;
 
         void erase();
@@ -68,7 +70,7 @@ class FileSystem {
 
         void delete_folder(const std::string& full_path);
 
-        File* create_file(const std::string& full_path, const std::string& author, uint32_t size, uint16_t owner_1, uint16_t owner_2 = 0);
+        File* create_file(const std::string& full_path, const std::string& author, uint32_t size, std::string owner_1, std::string owner_2 = 0);
 
         File* update_file(const std::string& full_path, const std::string& new_name, uint16_t new_owner_1, uint16_t new_owner_2);
 
@@ -100,7 +102,7 @@ class FileSystem {
 
 
     private:
-        uint32_t nextID;
+        std::atomic<uint32_t> nextID;
 
 };
 

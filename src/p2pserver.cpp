@@ -39,7 +39,7 @@ void Server::start(const std::string& path, uint32_t port) {
     this->port = port;
     free(root);
 
-    this->current_id = 1;
+    this->current_id = 2;
 
 
     try {
@@ -162,7 +162,44 @@ void Server::handle_fs(std::shared_ptr<Socket::TCPSocket> client_socket, std::ve
         else if (tokens[1] == "DELETE_FOLDER") file_system.delete_folder(tokens[2]);
         else if (tokens[1] == "UPDATE_FOLDER") file_system.update_folder(tokens[2], tokens[3]);
 
-        else if (tokens[1] == "CREATE_FILE") ;// file_system.create_file();
+        else if (tokens[1] == "CREATE_FILE" && tokens[0] == "PHP") {
+            std::string author = this->my_name;
+            std::string fullpath = tokens[2] + tokens[3];
+            std::string owner_1 = this->my_name;
+            std::string owner_2 = "None";
+            uint32_t size = 0;
+            std::ifstream in("add-files-here/" + tokens[3], std::ifstream::ate | std::ifstream::binary);
+            if (in) {
+                size = in.tellg();
+                in.close();
+            }
+            else throw std::invalid_argument("File not found");
+            log->error("XDlolzin");
+            file_system.create_file(fullpath, author, size, owner_1, owner_2);
+            log->error("XDlolzin2");
+
+
+            barrier_my_name.lock();
+            barrier_known_peers.lock();
+            for (auto peer : known_peers) {
+                Socket::TCPSocket fs_update;
+                fs_update.connect(peer.second.host, this->port);
+                std::string message = "FS:CREATE_FILE:" + fullpath + ":" + author + ":"
+                 + std::to_string(size) + ":" + owner_1 + ":None:[end]";
+
+                fs_update.send(message);
+            }
+            barrier_known_peers.unlock();
+            barrier_my_name.unlock();
+        }
+        else if (tokens[1] == "CREATE_FILE") {
+            std::string author = tokens[3];
+            std::string fullpath = tokens[2];
+            std::string owner_1 = tokens[5];
+            std::string owner_2 = tokens[6];
+            uint32_t size = std::stoi(tokens[4]);
+            file_system.create_file(fullpath, author, size, owner_1, owner_2);
+        }
         else if (tokens[1] == "DELETE_FILE") ;// file_system.delete_file();
         else if (tokens[1] == "UPDATE_FILE") ;// file_system.update_file();
         else if (tokens[1] == "SYNC") {
@@ -188,12 +225,14 @@ void Server::handle_php(std::shared_ptr<Socket::TCPSocket> client_socket, std::v
 
     if (tokens[1] == "NEW_NICK") {
         barrier_my_name.lock();
-        uint16_t peer_id = nickname_to_peer_id[tokens[1]];
+        uint16_t peer_id = nickname_to_peer_id[tokens[2]];
         std::string answer;
-        if (peer_id != 0) error(client_socket, "Nome ja usado", true);
+        if (peer_id > 1) error(client_socket, "Nome ja usado", true);
         else {
             client_socket->send("{\"error\":\"false\"}");
             this->my_name = tokens[2];
+            nickname_to_peer_id[tokens[2]] = 1;
+            known_peers[1] = Peer(1, this->my_name, "127.0.0.1");
         }
         barrier_my_name.unlock();
     }
@@ -225,6 +264,8 @@ void Server::handle_php(std::shared_ptr<Socket::TCPSocket> client_socket, std::v
         try {
             handle_fs(client_socket, tokens);
             client_socket->send("{\"error\":\"false\"}");
+
+            if (tokens[1] == "CREATE_FILE") return;
 
             barrier_my_name.lock();
             barrier_known_peers.lock();
@@ -318,7 +359,7 @@ void Server::sync() {
             while(!this->is_finished) {
                 Socket::UDPRecv response = discover.recvfrom(8192);
                 std::string message = response.get_msg();
-                log->info("Syncing ayy " + response.get_ip_address());
+                log->info("Syncing ayy " + response.get_address());
                 std::vector<std::string> tokens = Helpers::split(message, ':');
 
                 std::string fs_json = tokens[2];

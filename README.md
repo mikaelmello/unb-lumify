@@ -16,7 +16,6 @@ Seu computador deve ter `php-cgi` instalado para o funcionamento correto do serv
 ```bash
 $ git clone https://github.com/MikaelMello/lumify.git
 $ cd lumify
-$ mkdir obj files
 $ make
 $ ./lumify
 ```

@@ -8,16 +8,18 @@
 
 
 File::File(const std::string& name, const std::string& author, uint32_t size, uint32_t id,
-    uint16_t owner_1, uint16_t owner_2) : name(name), author(author),
+    std::string owner_1, std::string owner_2) : name(name), author(author),
     size(size), owner_1(owner_1), owner_2(owner_2), id(id) {
 }
+
+File::File() : id(0) {}
 
 std::string File::get_json() {
     std::string js = "{\"name\":\""   + this->name + "\","+
                       "\"author\":\"" + this->author + "\","+
                       "\"size\":\""   + std::to_string(this->size) + "\","+
-                      "\"owner1\":\"" + std::to_string(this->owner_1) + "\","+
-                      "\"owner2\":\"" + std::to_string(this->owner_2) + "\"}";
+                      "\"owner1\":\"" + this->owner_1 + "\","+
+                      "\"owner2\":\"" + this->owner_2 + "\"}";
 
     return js;
 }
@@ -116,6 +118,25 @@ Folder* FileSystem::create_folder(const std::string& full_path) {
     return current;
 }
 
+Folder* FileSystem::retrieve_folder(const std::string& full_path) {
+    std::vector<std::string> tokens = Helpers::split(full_path, '/');
+    if (tokens[0] != "root") throw std::invalid_argument("full_path wrong");
+
+    Folder* last = NULL;
+    Folder* current = &root;
+    int n = tokens.size();
+    for (int i = 1; i < n; i++) {
+        last = current;
+        current = &current->subfolders[tokens[i]];
+        if (current->name == "") {
+            last->subfolders.erase(tokens[i]);
+            throw std::invalid_argument("folder in the middle not found");
+        }
+    }
+
+    return current;
+}
+
 Folder* FileSystem::update_folder(const std::string& full_path, const std::string& new_name) {
     std::vector<std::string> tokens = Helpers::split(full_path, '/');
     if (tokens[0] != "root") throw std::invalid_argument("INVALID_PATH");
@@ -160,6 +181,28 @@ void FileSystem::delete_folder(const std::string& full_path) {
     std::map<std::string,Folder>::iterator it = last->subfolders.find(tokens[n-1]);
     last->subfolders.erase(it);
     update_json();
+}
+
+
+
+File* FileSystem::create_file(const std::string& full_path, const std::string& author, 
+        uint32_t size, std::string owner_1, std::string owner_2) {
+    std::vector<std::string> tokens = Helpers::split(full_path, '/');
+    if (tokens[0] != "root") throw std::invalid_argument("full_path wrong");
+
+
+    std::string filename = full_path.substr(full_path.find_last_of("/") + 1);
+    std::string folder_path = full_path.substr(0, full_path.find_last_of("/"));
+
+    Folder* current = retrieve_folder(folder_path);
+    if (current->files[filename].id == 0) {
+        current->files[filename] = File(filename, author, size, nextID, owner_1, owner_2);
+        system(("mv ./add-files-here/" + filename + " ./files/" + std::to_string(nextID++)).c_str());
+    }
+
+
+    update_json();
+    return &current->files[filename];
 }
 
 void FileSystem::sync(const std::string& json) {

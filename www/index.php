@@ -104,10 +104,12 @@
 			<table id="arquivos">
 				<caption>Arquivos</caption>
 				<caption class="funcoes">
-					<a href="javascript:void(0)" onClick="add_file()" class="btnFuncoes"><i class="fa fa-plus-circle"></i> Adicionar Arquivo</a>
-					<form class="none" id="file_submit">
+					<a href="javascript:void(0)" onClick="add_file()" class="btnFuncoes"><i class="fa fa-plus-circle"></i> Adicionar Arquivo - Primeiro transfira o arquivo para a pasta add-files-here e escolha lá</a>
+					<form action="data.php" method="get" target="_blank" class="none" id="file_submit">
 						<input type="file" name="file">
 						<input type="submit" name="enviar">
+						<input type="hidden" name="data" value="CREATE_FILE">
+						<input type="hidden" name="fullpath" id="fullpathlol" value="" />
 					</form>
 				</caption>
 				<tr>
