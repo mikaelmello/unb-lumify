@@ -36,6 +36,10 @@ class Server {
         /// Aceita conexões ao servidor por tempo indefinido.
         void accept();
 
+        /// Retorna uma lista dos peers conhecidos.
+        /// @return Uma JSON dos peers.
+        std::string get_peers();
+
         /// Define o que fazer com um request.
         /// @param client_socket TCPSocket do cliente conectado ao servidor.
         void handle_request(std::shared_ptr<Socket::TCPSocket> client_socket);

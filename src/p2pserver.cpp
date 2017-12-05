@@ -130,6 +130,18 @@ void Server::accept() {
     this->threads_qty--;
 }
 
+std::string Server::get_peers() {
+    std::string msg = "{\"erro\":\"false\",\"peers\":[";
+    barrier_known_peers.lock();
+    for (auto peer: known_peers) {
+        msg += "{\"host\":\"" + peer.second.host + "\",\"name\":\"" + peer.second.name + "\"}";
+        std::cout << peer.second.name << " " << peer.second.host << std::endl;
+    }
+    barrier_known_peers.unlock();
+    msg += "]}";
+    return msg;
+}
+
 void Server::handle_request(std::shared_ptr<Socket::TCPSocket> client_socket) {
     try {
 
@@ -287,6 +299,10 @@ void Server::handle_php(std::shared_ptr<Socket::TCPSocket> client_socket, std::v
     }
     else if (tokens[1] == "GET_FS") {
         std::string msg = file_system.get_json();
+        client_socket->send(msg);
+    }
+    else if (tokens[1] == "GET_PEERS") {
+        std::string msg = get_peers();
         client_socket->send(msg);
     }
     else if (fs_commands.find(tokens[1]) != fs_commands.end()) {

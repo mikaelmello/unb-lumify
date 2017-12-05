@@ -398,6 +398,18 @@ function get_fs() {
     server.send();
 }
 
+function get_peers() {
+    var server = configureBrowserRequest(server);
+    server.onreadystatechange = function() {
+        if(server.readyState == 4 && server.status == 200) {
+            parsed = JSON.parse(server.responseText);
+            console.log(server.responseText);
+        }
+    }
+    server.open("GET", "data.php?data=GET_PEERS", true);
+    server.send();
+}
+
 function folders() {
     var json = get_json();
     update_span("current_subfolders", json["folders_no"]);
