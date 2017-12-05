@@ -222,6 +222,10 @@ td:nth-child(8) {
 	color: #808080;
 }
 
+#pastas, #usuarios {
+	padding: 0px;
+}
+
 /* Para Tablet: */
 @media only screen and (min-width: 600px) {
 .col-m-1 {width: 8.33%;}
@@ -239,6 +243,10 @@ td:nth-child(8) {
 
 .menu {
 	display: inline;
+}
+
+#pastas, #usuarios {
+	padding: 0px 15px 15px;
 }
 
 }
