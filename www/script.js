@@ -108,6 +108,7 @@ function aviso(users_qty) {
 }
 
 function bytes(tamanho) {
+    if(tamanho == 0) return "0 B";
     var i = 0;
     var str;
     var aux = tamanho;
