@@ -107,6 +107,36 @@ function aviso(users_qty) {
     }
 }
 
+function bytes(tamanho) {
+    var i = 0;
+    var str;
+    var aux = tamanho;
+    while((aux / 1024) > 1) {
+        aux /= 1024;
+        i++;
+    }
+    aux = aux.toFixed(1);
+    switch (i) {
+        case 0:
+            return aux + " B";
+            break;
+        case 1:
+            return aux + " KB";
+            break;
+        case 2:
+            return aux + " MB";
+            break;
+        case 3:
+            return aux + " GB";
+            break;
+        case 4:
+            return aux + " TB";
+            break;
+        default:
+            return tamanho.toFixed(1) + " B";
+    }
+}
+
 function update() {
     var server = configureBrowserRequest(server);
     server.onreadystatechange = function() {
@@ -115,7 +145,7 @@ function update() {
             update_span("usersqty", parsed["users_qty"]);
             update_span("subfolders", parsed["total_folders_qty"]);
             update_span("files", parsed["total_files_qty"]);
-            update_span("size", parsed["total_size"]);
+            update_span("size", bytes(parsed["total_size"]));
             aviso(parsed["users_qty"]);
         }
     }
@@ -327,7 +357,7 @@ function add_diretorio(nome, pasta, arquivo, tamanho, tipo, file) {
     row.insertCell(0).innerHTML = nome;
     row.insertCell(1).innerHTML = pasta;
     row.insertCell(2).innerHTML = arquivo;
-    row.insertCell(3).innerHTML = tamanho + " Bytes";
+    row.insertCell(3).innerHTML = bytes(tamanho);
     row.insertCell(4).innerHTML = tipo;
     if(file != -1) {
         row.insertCell(5).innerHTML = '<a href="javascript:void(0)" onClick="navegar(' + file + ')" class="especial"><i class="fa fa-mail-forward"></i></a>';
@@ -345,7 +375,7 @@ function add_arquivo(nome, autor, tamanho, par1, par2, funcao) {
     var row = document.getElementById("arquivos").insertRow(1);
     row.insertCell(0).innerHTML = nome;
     row.insertCell(1).innerHTML = autor;
-    row.insertCell(2).innerHTML = tamanho + " Bytes";
+    row.insertCell(2).innerHTML = bytes(tamanho);
     row.insertCell(3).innerHTML = par1;
     row.insertCell(4).innerHTML = par2;
     row.insertCell(5).innerHTML = '<a href="javascript:void(0)" onClick="download_file(' + funcao + ')" class="especial"><i class="fa fa-download"></i></a>';
@@ -371,7 +401,7 @@ function folders() {
     var json = get_json();
     update_span("current_subfolders", json["folders_no"]);
     update_span("current_files", json["files_no"]);
-    update_span("current_size", json["size"]);
+    update_span("current_size", bytes(json["size"]));
 }
 
 function create_folder(fullpath) {

@@ -69,7 +69,7 @@
 				<ul id="pasta" class="cntrl-1">
 					<li><i class="fa fa-folder-open"></i> Subpastas: <span id="current_subfolders"></span></li>
 					<li><i class="fa fa-file"></i> Arquivos: <span id="current_files"></span></li>
-					<li><i class="fa fa-database"></i> <span id="current_size"></span> bytes</li>
+					<li><i class="fa fa-database"></i> <span id="current_size"></span></li>
 				</ul>
 			</div>
 			<div class="col-12 col-m-12 info">
@@ -78,7 +78,7 @@
 					<li><i class="fa fa-user"></i> Usuários: <span id="usersqty"></span></li>
 					<li><i class="fa fa-folder-open"></i> Pastas: <span id="subfolders"></span></li>
 					<li><i class="fa fa-file"></i> Arquivos: <span id="files"></span></li>
-					<li><i class="fa fa-database"></i> <span id="size"></span> bytes</li>
+					<li><i class="fa fa-database"></i> <span id="size"></span></li>
 				</ul>
 			</div>
 		</div>
