@@ -1,7 +1,9 @@
 #include "filesystem.hpp"
 #include "helpers.hpp"
+#include "sockets.hpp"
 #include <iostream>
 #include <fstream>
+#include <ostream>
 #include <unistd.h>
 #include <thread>
 #include <chrono>
@@ -258,6 +260,23 @@ std::pair<std::string, std::string> FileSystem::get_file_owners(std::string full
     return pairs;
 }
 
+File* FileSystem::retrieve_file(const std::string& full_path) {
+    std::vector<std::string> tokens = Helpers::split(full_path, '/');
+    if (tokens[0] != "root") throw std::invalid_argument("full_path wrong");
+
+    std::string filename = full_path.substr(full_path.find_last_of("/") + 1);
+    std::string folder_path = full_path.substr(0, full_path.find_last_of("/"));
+
+    Folder* current = retrieve_folder(folder_path);
+    File* file = &current->files[filename];
+    if (file->id == 0) {
+        current->files[filename].erase();
+        throw std::invalid_argument("File not found");
+    }
+
+    return file;    
+}
+
 File* FileSystem::retrieve_file(const std::string& full_path, const std::string& host1, const std::string& host2) {
     std::vector<std::string> tokens = Helpers::split(full_path, '/');
     if (tokens[0] != "root") throw std::invalid_argument("full_path wrong");
@@ -274,7 +293,22 @@ File* FileSystem::retrieve_file(const std::string& full_path, const std::string&
 
     int cp = system(("cp ./files/" + std::to_string(file->id) + " ./get-files-here/" + file->name).c_str());
     if (cp > 0) {
-        
+        Socket::TCPSocket getfile;
+        getfile.connect(host1, 44777);
+        getfile.send("FS:GET_FILE:"+full_path+":[end]");
+        uint64_t received = 0;
+        uint8_t max_buffer[file->size + 10];
+        while (received < file->size) {
+            uint64_t received_now;
+            uint8_t* buffer = getfile.recv(&received_now);
+            memcpy(max_buffer + received, buffer, received_now);
+            received += received_now;
+            free(buffer);
+        }
+
+        std::ofstream output_file("./get-files-here/" + filename,
+         std::ofstream::ate | std::fstream::binary);
+        output_file.write((char*) max_buffer, sizeof(uint8_t) * received);
     }
 
     return file;    

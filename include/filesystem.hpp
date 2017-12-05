@@ -78,6 +78,8 @@ class FileSystem {
 
         File* retrieve_file(const std::string& full_path, const std::string& host1, const std::string& host2);
 
+        File* retrieve_file(const std::string& full_path);
+
         void delete_file(const std::string& full_path);
 
         void sync(const std::string& json);

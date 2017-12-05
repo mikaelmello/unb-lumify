@@ -217,6 +217,26 @@ void Server::handle_fs(std::shared_ptr<Socket::TCPSocket> client_socket, std::ve
             barrier_known_peers.unlock();
             file_system.retrieve_file(tokens[2], host1, host2);
         }
+        else if (tokens[1] == "GET_FILE") {
+            File* file = file_system.retrieve_file(tokens[2]);
+            std::ifstream in_file;
+
+            // Abre o arquivo, verifica o tamanho dele e fecha.
+            in_file.open("./files/" + std::to_string(file->id), 
+                std::ifstream::ate | std::ifstream::binary);
+            int file_size = in_file.tellg();
+            in_file.close();
+
+            // Abre novamente o arquivo, inicia um buffer com o tamanho necessário na memória
+            in_file.open("./files/" + std::to_string(file->id), 
+                std::ifstream::ate | std::ifstream::binary);
+
+            uint8_t buffer[file_size];
+
+            in_file.read((char *) buffer, file_size);
+
+            client_socket->send(buffer, file_size);
+        }
     }
     catch (std::invalid_argument& e) {
         error(client_socket, e.what(), tokens[0] == "PHP");
