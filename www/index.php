@@ -41,7 +41,7 @@
 		<a href="\index.php"><h1 class="logo"><i class="fa fa-code"></i>  Lumify</h1></a>
 		<nav class="menu">
 			<ul>
-				<li><i class="fa fa-user-circle-o"></i> Usuário</li>
+				<a onClick="peers()" href="javascript:void(0)"><li><i class="fa fa-user-circle-o"></i> Usuário</li></a>
 				<a onClick="arquivos()" href="javascript:void(0)"><li><i class="fa fa-folder"></i> Pastas</li></a>
 				<a onClick="logout()" href="javascript:void(0)"><li><i class="fa fa-power-off"></i> Sair</li></a>
 			</ul>
@@ -128,17 +128,15 @@
 			</div>
 		</div>
 		<div class="col-9 col-m-12 conteudo none" id="usuarios" style="color:#000; padding-right: 0px;">
-			<p>Caminho: <span id="caminho"></span></p>
-			<table id="users">
-				<caption>asdf</caption>
-				<tr>
-					<th>Nome</th>
-					<th>Pastas</th>
-					<th>Arquivos</th>
-					<th>Tamanho</th>
-					<th>Tipo</th>
-				</tr>
-			</table>
+			<div class="tabelas">
+				<div class="tabelas"><h2>Usuários</h2></div>
+				<table id="users">
+					<tr>
+						<th>Nome</th>
+						<th>IP</th>
+					</tr>
+				</table>
+			</div>
 		</div>
 	</div>
 </body>
