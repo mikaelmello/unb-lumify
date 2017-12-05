@@ -138,10 +138,22 @@ function navegar(funcao) {
     }
 }
 
-function download(file) {
+function download_file(file) {
     var fullpath = caminho() + get_json().files[file].name;
     if(window.confirm("Deseja baixar o arquivo?") == true) {
         console.log(fullpath);
+        var server = configureBrowserRequest(server);
+        server.onreadystatechange = function() {
+            if(server.readyState == 4 && server.status == 200) {
+                console.log(server.responseText);
+                var rrr = JSON.parse(server.responseText);
+                if (rrr["error"] == "false") alert("Download feito com sucesso. Acesse seu arquivo na pasta get-files-here");
+                else alert("Download falhou: " + rrr["reason"]);
+                get_fs();
+            }
+        }
+        server.open("GET", "data.php?data=DOWNLOAD_FILE&fullpath="+fullpath, true);
+        server.send();
     }
 }
 
@@ -154,7 +166,6 @@ function add_folder() {
         fullpath = caminho() + fullpath;
         console.log(fullpath);
         create_folder(fullpath);
-        setTimeout(get_fs(), 1000);
     }
 }
 
@@ -183,7 +194,6 @@ function edit_folder(id) {
         fullpath = caminho() + get_json().subfolders[id].name;
         console.log("Editando " + fullpath + " para novo nome " + fullpath_edit);
         update_folder(fullpath, fullpath_edit);
-        setTimeout(get_fs(), 1000);
     }
 }
 
@@ -193,12 +203,25 @@ function edit_file(id) {
         window.alert("Digite um nome válido!");
     }
     else {
-        fullpath_edit = caminho() + fullpath_edit;
         fullpath = caminho() + get_json().files[id].name;
         console.log(fullpath);
         console.log(fullpath_edit);
-        // Escreva o resto aqui
+        update_file(fullpath, fullpath_edit);
     }
+}
+
+
+function update_file(fullpath, new_name) {
+    var server = configureBrowserRequest(server);
+    server.onreadystatechange = function() {
+        if(server.readyState == 4 && server.status == 200) {
+            console.log(server.responseText);
+            get_fs();
+        }
+    }
+    server.open("GET", "data.php?data=UPDATE_FILE&fullpath="+fullpath+"&newname="+new_name, true);
+    server.send();    
+
 }
 
 function remove_folder(id) {
@@ -206,7 +229,6 @@ function remove_folder(id) {
     if(window.confirm("Deseja apagar esta pasta?") == true) {
         console.log(fullpath);
         delete_folder(fullpath);
-        get_fs();
     }
 }
 
@@ -214,6 +236,15 @@ function remove_file(id) {
     var fullpath = caminho() + get_json().files[id].name;
     if(window.confirm("Deseja apagar este arquivo?") == true) {
         console.log(fullpath);
+        var server = configureBrowserRequest(server);
+        server.onreadystatechange = function() {
+            if(server.readyState == 4 && server.status == 200) {
+                console.log(server.responseText);
+                get_fs();
+            }
+        }
+        server.open("GET", "data.php?data=DELETE_FILE&fullpath="+fullpath, true);
+        server.send();
     }
 }
 
@@ -308,7 +339,7 @@ function add_arquivo(nome, autor, tamanho, par1, par2, funcao) {
     row.insertCell(2).innerHTML = tamanho + " Bytes";
     row.insertCell(3).innerHTML = par1;
     row.insertCell(4).innerHTML = par2;
-    row.insertCell(5).innerHTML = '<a href="javascript:void(0)" onClick="download(' + funcao + ')" class="btnFuncoes"><i class="fa fa-download"></i></a>';
+    row.insertCell(5).innerHTML = '<a href="javascript:void(0)" onClick="download_file(' + funcao + ')" class="btnFuncoes"><i class="fa fa-download"></i></a>';
     row.insertCell(6).innerHTML = '<a href="javascript:void(0)" onClick="edit_file(' + funcao + ')" class="btnFuncoes"><i class="fa fa-edit"></i></a>';
     row.insertCell(7).innerHTML = '<a href="javascript:void(0)" onClick="remove_file(' + funcao + ')" class="btnFuncoes"><i class="fa fa-times-circle"></i></a>';
 }
@@ -331,6 +362,7 @@ function create_folder(fullpath) {
     server.onreadystatechange = function() {
         if(server.readyState == 4 && server.status == 200) {
             console.log(server.responseText);
+            get_fs();
         }
     }
     server.open("GET", "data.php?data=CREATE_FOLDER&fullpath="+fullpath, true);
@@ -343,6 +375,7 @@ function update_folder(fullpath, new_name) {
     server.onreadystatechange = function() {
         if(server.readyState == 4 && server.status == 200) {
             console.log(server.responseText);
+            get_fs();
         }
     }
     server.open("GET", "data.php?data=UPDATE_FOLDER&fullpath="+fullpath+"&newname="+new_name, true);
@@ -355,6 +388,7 @@ function delete_folder(fullpath) {
     server.onreadystatechange = function() {
         if(server.readyState == 4 && server.status == 200) {
             console.log(server.responseText);
+            get_fs();
         }
     }
     server.open("GET", "data.php?data=DELETE_FOLDER&fullpath="+fullpath, true);

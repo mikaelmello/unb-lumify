@@ -25,7 +25,7 @@ std::string File::get_json() {
 }
 
 void File::erase() {
-
+    system(("rm -f ./files/" + std::to_string(this->id)).c_str());
 }
 
 Folder::Folder(const std::string& name) : name(name) {
@@ -183,8 +183,6 @@ void FileSystem::delete_folder(const std::string& full_path) {
     update_json();
 }
 
-
-
 File* FileSystem::create_file(const std::string& full_path, const std::string& author, 
         uint32_t size, std::string owner_1, std::string owner_2) {
     std::vector<std::string> tokens = Helpers::split(full_path, '/');
@@ -203,6 +201,65 @@ File* FileSystem::create_file(const std::string& full_path, const std::string& a
 
     update_json();
     return &current->files[filename];
+}
+
+void FileSystem::delete_file(const std::string& full_path) {
+    std::vector<std::string> tokens = Helpers::split(full_path, '/');
+    if (tokens[0] != "root") throw std::invalid_argument("full_path wrong");
+
+    std::string filename = full_path.substr(full_path.find_last_of("/") + 1);
+    std::string folder_path = full_path.substr(0, full_path.find_last_of("/"));
+
+    Folder* current = retrieve_folder(folder_path);
+    if (current->files[filename].id != 0) {
+        current->files[filename].erase();
+    }
+    current->files.erase(filename);
+    update_json();
+}
+
+File* FileSystem::update_file(const std::string& full_path, const std::string& new_name, std::string new_owner_1, std::string new_owner_2) {
+    std::vector<std::string> tokens = Helpers::split(full_path, '/');
+    if (tokens[0] != "root") throw std::invalid_argument("full_path wrong");
+
+    std::string filename = full_path.substr(full_path.find_last_of("/") + 1);
+    std::string folder_path = full_path.substr(0, full_path.find_last_of("/"));
+
+    Folder* current = retrieve_folder(folder_path);
+    File* file = &current->files[filename];
+    if (file->id == 0) {
+        current->files[filename].erase();
+        throw std::invalid_argument("File not found");
+    }
+    else {
+        if (new_name    != "") file->name = new_name;
+        if (new_owner_1 != "") file->owner_1 = new_owner_1;
+        if (new_owner_2 != "") file->owner_2 = new_owner_2;
+    }
+    update_json();
+    return file;
+}
+
+File* FileSystem::retrieve_file(const std::string& full_path) {
+    std::vector<std::string> tokens = Helpers::split(full_path, '/');
+    if (tokens[0] != "root") throw std::invalid_argument("full_path wrong");
+
+    std::string filename = full_path.substr(full_path.find_last_of("/") + 1);
+    std::string folder_path = full_path.substr(0, full_path.find_last_of("/"));
+
+    Folder* current = retrieve_folder(folder_path);
+    File* file = &current->files[filename];
+    if (file->id == 0) {
+        current->files[filename].erase();
+        throw std::invalid_argument("File not found");
+    }
+
+    int cp = system(("cp ./files/" + std::to_string(file->id) + " ./get-files-here/" + file->name).c_str());
+    if (cp > 0) {
+        // get from outer space
+    }
+
+    return file;    
 }
 
 void FileSystem::sync(const std::string& json) {

@@ -72,7 +72,7 @@ class FileSystem {
 
         File* create_file(const std::string& full_path, const std::string& author, uint32_t size, std::string owner_1, std::string owner_2 = 0);
 
-        File* update_file(const std::string& full_path, const std::string& new_name, uint16_t new_owner_1, uint16_t new_owner_2);
+        File* update_file(const std::string& full_path, const std::string& new_name, std::string new_owner_1, std::string new_owner_2);
 
         File* retrieve_file(const std::string& full_path);
 

@@ -174,10 +174,7 @@ void Server::handle_fs(std::shared_ptr<Socket::TCPSocket> client_socket, std::ve
                 in.close();
             }
             else throw std::invalid_argument("File not found");
-            log->error("XDlolzin");
             file_system.create_file(fullpath, author, size, owner_1, owner_2);
-            log->error("XDlolzin2");
-
 
             barrier_my_name.lock();
             barrier_known_peers.lock();
@@ -200,16 +197,20 @@ void Server::handle_fs(std::shared_ptr<Socket::TCPSocket> client_socket, std::ve
             uint32_t size = std::stoi(tokens[4]);
             file_system.create_file(fullpath, author, size, owner_1, owner_2);
         }
-        else if (tokens[1] == "DELETE_FILE") ;// file_system.delete_file();
-        else if (tokens[1] == "UPDATE_FILE") ;// file_system.update_file();
-        else if (tokens[1] == "SYNC") {
-            std::string fs_json = tokens[2];
-            for (int i = 3, n = tokens.size() - 1; i < n; i++) {
-                fs_json += ":" + tokens[i];
+        else if (tokens[1] == "DELETE_FILE") file_system.delete_file(tokens[2]);
+        else if (tokens[1] == "UPDATE_FILE") {
+            std::string full_path = tokens[2];
+            std::string new_name = tokens[3];
+            std::string new_author_1 = "";
+            std::string new_author_2 = "";
+            if (tokens[4] != "[end]") {
+                new_author_1 = tokens[4];
+                new_author_2 = tokens[5];
             }
-
-            // sync fs
-
+            file_system.update_file(full_path, new_name, new_author_1, new_author_2);
+        }
+        else if (tokens[1] == "DOWNLOAD_FILE") {
+            file_system.retrieve_file(tokens[2]);
         }
     }
     catch (std::invalid_argument& e) {
@@ -221,7 +222,7 @@ void Server::handle_fs(std::shared_ptr<Socket::TCPSocket> client_socket, std::ve
 void Server::handle_php(std::shared_ptr<Socket::TCPSocket> client_socket, std::vector<std::string> tokens) {
 
     std::set<std::string> fs_commands = {"CREATE_FOLDER", "DELETE_FOLDER", "UPDATE_FOLDER",
-                                        "UPDATE_FILE", "DELETE_FILE", "CREATE_FILE"};
+                                        "UPDATE_FILE", "DELETE_FILE", "CREATE_FILE", "DOWNLOAD_FILE"};
 
     if (tokens[1] == "NEW_NICK") {
         barrier_my_name.lock();
@@ -265,7 +266,7 @@ void Server::handle_php(std::shared_ptr<Socket::TCPSocket> client_socket, std::v
             handle_fs(client_socket, tokens);
             client_socket->send("{\"error\":\"false\"}");
 
-            if (tokens[1] == "CREATE_FILE") return;
+            if (tokens[1] == "CREATE_FILE" || tokens[1] == "DOWNLOAD_FILE") return;
 
             barrier_my_name.lock();
             barrier_known_peers.lock();

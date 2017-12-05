@@ -32,8 +32,17 @@ switch($_GET["data"]) {
     case "UPDATE_FOLDER":
         echo send_msg("UPDATE_FOLDER:" . $_GET["fullpath"] . ":" . $_GET["newname"]);
         break;
+    case "UPDATE_FILE":
+        echo send_msg("UPDATE_FILE:" . $_GET["fullpath"] . ":" . $_GET["newname"]);
+        break;
+    case "DOWNLOAD_FILE":
+        echo send_msg("DOWNLOAD_FILE:" . $_GET["fullpath"]);
+        break;
     case "DELETE_FOLDER":
         echo send_msg("DELETE_FOLDER:" . $_GET["fullpath"]);
+        break;
+    case "DELETE_FILE":
+        echo send_msg("DELETE_FILE:" . $_GET["fullpath"]);
         break;
     case "CREATE_FILE":
         send_msg("CREATE_FILE:" . $_GET["fullpath"] . ":" . $_GET["file"]);
