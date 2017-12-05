@@ -210,7 +210,12 @@ void Server::handle_fs(std::shared_ptr<Socket::TCPSocket> client_socket, std::ve
             file_system.update_file(full_path, new_name, new_author_1, new_author_2);
         }
         else if (tokens[1] == "DOWNLOAD_FILE") {
-            file_system.retrieve_file(tokens[2]);
+            std::pair<std::string, std::string> owners = file_system.get_file_owners(tokens[2]);
+            barrier_known_peers.lock();
+            std::string host1 = known_peers[nickname_to_peer_id[owners.first]].host;
+            std::string host2 = known_peers[nickname_to_peer_id[owners.second]].host;
+            barrier_known_peers.unlock();
+            file_system.retrieve_file(tokens[2], host1, host2);
         }
     }
     catch (std::invalid_argument& e) {

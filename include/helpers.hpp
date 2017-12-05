@@ -8,6 +8,22 @@
 #include <string>
 #include <vector>
 
+/// Estrutura de um Peer
+struct Peer {
+    Peer(uint16_t id, std::string name, std::string host) :
+        id(id), name(name), host(host) {}
+    Peer() : id(0) {}
+
+    /// ID do peer especificamente neste nó da rede.
+    uint16_t id;
+
+    /// Nome do peer
+    std::string name;
+
+    /// Endereço IP do peer.
+    std::string host;
+};
+
 namespace Helpers {
     
 // Divide uma string em um vetor de strings de acordo um caractere delimitador

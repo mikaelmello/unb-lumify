@@ -14,22 +14,6 @@
 
 namespace P2P {
 
-/// Estrutura de um Peer
-struct Peer {
-    Peer(uint16_t id, std::string name, std::string host) :
-        id(id), name(name), host(host) {}
-    Peer() : id(0) {}
-
-    /// ID do peer especificamente neste nó da rede.
-    uint16_t id;
-
-    /// Nome do peer
-    std::string name;
-
-    /// Endereço IP do peer.
-    std::string host;
-};
-
 /// Servidor P2P.
 class Server {
 

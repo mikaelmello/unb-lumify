@@ -74,7 +74,9 @@ class FileSystem {
 
         File* update_file(const std::string& full_path, const std::string& new_name, std::string new_owner_1, std::string new_owner_2);
 
-        File* retrieve_file(const std::string& full_path);
+        std::pair<std::string, std::string> get_file_owners(std::string full_path);
+
+        File* retrieve_file(const std::string& full_path, const std::string& host1, const std::string& host2);
 
         void delete_file(const std::string& full_path);
 

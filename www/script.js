@@ -259,7 +259,7 @@ function preencher_tabela(parse) {
         obj.insertCell(0).id = "diretorio_vazio";
         obj = document.getElementById("diretorio_vazio")
         obj.innerHTML = "Não há nada para mostrar!";
-        obj.setAttribute("colspan", 7);
+        obj.setAttribute("colspan", 8);
     }
     else {
         var obj = parse.subfolders;
@@ -274,7 +274,7 @@ function preencher_tabela(parse) {
         obj.insertCell(0).id = "arquivos_vazio";
         obj = document.getElementById("arquivos_vazio")
         obj.innerHTML = "Não há nada para mostrar!";
-        obj.setAttribute("colspan", 7);
+        obj.setAttribute("colspan", 8);
     }
     else {
         obj = parse.files;
@@ -309,12 +309,6 @@ function delete_rows() {
 
 function add_diretorio(nome, pasta, arquivo, tamanho, tipo, file) {
     var row = document.getElementById("diretorios").insertRow(1);
-    if(file != -1) {
-        
-    }
-    else {
-        row.insertCell(0);
-    }
     row.insertCell(0).innerHTML = nome;
     row.insertCell(1).innerHTML = pasta;
     row.insertCell(2).innerHTML = arquivo;

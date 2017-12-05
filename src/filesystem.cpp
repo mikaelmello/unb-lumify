@@ -240,7 +240,25 @@ File* FileSystem::update_file(const std::string& full_path, const std::string& n
     return file;
 }
 
-File* FileSystem::retrieve_file(const std::string& full_path) {
+std::pair<std::string, std::string> FileSystem::get_file_owners(std::string full_path) {
+    std::vector<std::string> tokens = Helpers::split(full_path, '/');
+    if (tokens[0] != "root") throw std::invalid_argument("full_path wrong");
+
+    std::string filename = full_path.substr(full_path.find_last_of("/") + 1);
+    std::string folder_path = full_path.substr(0, full_path.find_last_of("/"));
+
+    Folder* current = retrieve_folder(folder_path);
+    File* file = &current->files[filename];
+    if (file->id == 0) {
+        current->files[filename].erase();
+        throw std::invalid_argument("File not found");
+    }
+
+    std::pair<std::string, std::string> pairs(file->owner_1, file->owner_2);
+    return pairs;
+}
+
+File* FileSystem::retrieve_file(const std::string& full_path, const std::string& host1, const std::string& host2) {
     std::vector<std::string> tokens = Helpers::split(full_path, '/');
     if (tokens[0] != "root") throw std::invalid_argument("full_path wrong");
 
@@ -256,7 +274,7 @@ File* FileSystem::retrieve_file(const std::string& full_path) {
 
     int cp = system(("cp ./files/" + std::to_string(file->id) + " ./get-files-here/" + file->name).c_str());
     if (cp > 0) {
-        // get from outer space
+        
     }
 
     return file;    
