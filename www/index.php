@@ -82,49 +82,52 @@
 				</ul>
 			</div>
 		</div>
-		<div class="col-9 col-m-12 conteudo none" id="pastas" style="color:#000">
-			<p>Caminho: <span id="caminho"></span></p>
-			<table id="diretorios">
-				<caption>Diretórios</caption>
-				<caption class="funcoes">
-					<a href="javascript:void(0)" onClick="navegar(-1)" class="btnFuncoes"><i class="fa fa-mail-reply"></i> Voltar </a>
-					<a href="javascript:void(0)" onClick="add_folder()" class="btnFuncoes"><i class="fa fa-plus-circle"></i> Adicionar Pasta</a>
-				</caption>
-				<tr>
-					<th>Nome</th>
-					<th>Pastas</th>
-					<th>Arquivos</th>
-					<th>Tamanho</th>
-					<th>Tipo</th>
-					<th><i class="fa fa-mail-forward"></i></th>
-					<th><i class="fa fa-edit"></i></th>
-					<th><i class="fa fa-times-circle"></i></th>
-				</tr>
-			</table>
-			<table id="arquivos">
-				<caption>Arquivos</caption>
-				<caption class="funcoes">
-					<a href="javascript:void(0)" onClick="add_file()" class="btnFuncoes"><i class="fa fa-plus-circle"></i> Adicionar Arquivo - Primeiro transfira o arquivo para a pasta add-files-here e escolha lá</a>
-					<form action="data.php" method="get" target="_blank" class="none" id="file_submit">
-						<input type="file" name="file">
-						<input type="submit" name="enviar">
-						<input type="hidden" name="data" value="CREATE_FILE">
-						<input type="hidden" name="fullpath" id="fullpathlol" value="" />
-					</form>
-				</caption>
-				<tr>
-					<th>Nome</th>
-					<th>Autor</th>
-					<th>Tamanho</th>
-					<th>Par 1</th>
-					<th>Par 2</th>
-					<th><i class="fa fa-download"></i></th>
-					<th><i class="fa fa-edit"></i></th>
-					<th><i class="fa fa-times-circle"></i></th>
-				</tr>
-			</table>
+		<div class="col-9 col-m-12 conteudo none" id="pastas" style="color:#000; padding-right: 0px;">
+			<div class="tabelas none" id="aviso" style="background-color: #8b0000"><h2>Atenção!</h2>Menos de 3 usuários na rede.</div>
+			<div class="tabelas">
+				<div class="tabelas"><p>Caminho: <span id="caminho"></span></p></div>
+				<div class="tabelas"><h2>Diretórios</h2></div>
+				<table id="diretorios">
+					<caption class="funcoes">
+						<a href="javascript:void(0)" onClick="navegar(-1)" class="btnFuncoes"><i class="fa fa-mail-reply"></i> Voltar </a>
+						<a href="javascript:void(0)" onClick="add_folder()" class="btnFuncoes"><i class="fa fa-plus-circle"></i> Adicionar Pasta</a>
+					</caption>
+					<tr>
+						<th>Nome</th>
+						<th>Pastas</th>
+						<th>Arquivos</th>
+						<th>Tamanho</th>
+						<th>Tipo</th>
+						<th><i class="fa fa-mail-forward"></i></th>
+						<th><i class="fa fa-edit"></i></th>
+						<th><i class="fa fa-times-circle"></i></th>
+					</tr>
+				</table>
+				<div class="tabelas"><h2>Arquivos</h2></div>
+				<table id="arquivos">
+					<caption class="funcoes">
+						<a href="javascript:void(0)" onClick="add_file()" class="btnFuncoes"><i class="fa fa-plus-circle"></i> Adicionar Arquivo - Primeiro transfira o arquivo para a pasta add-files-here e escolha lá</a>
+						<form action="data.php" method="get" target="_blank" class="none" id="file_submit">
+							<input type="file" name="file">
+							<input type="submit" name="enviar">
+							<input type="hidden" name="data" value="CREATE_FILE">
+							<input type="hidden" name="fullpath" id="fullpathlol" value="" />
+						</form>
+					</caption>
+					<tr>
+						<th>Nome</th>
+						<th>Autor</th>
+						<th>Tamanho</th>
+						<th>Par 1</th>
+						<th>Par 2</th>
+						<th><i class="fa fa-download"></i></th>
+						<th><i class="fa fa-edit"></i></th>
+						<th><i class="fa fa-times-circle"></i></th>
+					</tr>
+				</table>
+			</div>
 		</div>
-		<div class="col-9 col-m-12 conteudo none" id="usuarios" style="color:#000">
+		<div class="col-9 col-m-12 conteudo none" id="usuarios" style="color:#000; padding-right: 0px;">
 			<p>Caminho: <span id="caminho"></span></p>
 			<table id="users">
 				<caption>asdf</caption>
