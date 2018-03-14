@@ -1,6 +1,8 @@
 # Lumify
 
-Sistema de Arquivos Distribuído desenvolvido para a disciplina Redes de Computadores, turma A, da Universidade de Brasília.
+Sistema de Arquivos ~Distribuído~ desenvolvido para a disciplina Redes de Computadores, turma A, da Universidade de Brasília.
+
+Não finalizado, falta redundância e distribuição dos arquivos, porém o compartilhamento deles funciona!
 
 ---
 
